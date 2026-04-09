@@ -53,18 +53,30 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 # ─── CONVERSATION HANDLER STATES ─────────────────────────────
 CHOOSE_LANGUAGE, WAITING_WORD = range(2)
 
+# ─── LANGUAGE MAPPING ────────────────────────────────────────
+LANGUAGE_MAP = {
+    "🇬🇧 English":   {"name": "English",    "others": ["French", "Dutch"]},
+    "🇫🇷 Français":  {"name": "French",     "others": ["English", "Dutch"]},
+    "🇳🇱 Nederlands": {"name": "Dutch",      "others": ["English", "French"]},
+}
+
 # ─── CORE FUNCTIONS ──────────────────────────────────────────
 def generate_definition(word, language):
-    """Queries the AI to generate an expert-level dictionary entry."""
-    prompt = f"""You are a world-class linguistic expert, lexicographer, and polyglot professor.
+    """2-step agentic pipeline: Draft → Self-Review → Final output."""
+    lang_info = LANGUAGE_MAP.get(language, {"name": language, "others": ["English", "French"]})
+    lang_name = lang_info["name"]
+    other1, other2 = lang_info["others"]
+
+    # ── STEP 1: Generate the draft ────────────────────────────
+    draft_prompt = f"""You are a world-class linguistic expert, lexicographer, and polyglot professor.
 Your task is to create a PERFECT, ACCURATE dictionary entry.
 
 Target Word: "{word}"
-Target Language: "{language}"
+Target Language: {lang_name}
 
 ABSOLUTE RULES:
 1. ACCURACY IS PARAMOUNT. Every definition, example, and etymology MUST be factually correct. Do NOT invent false etymologies or incorrect meanings.
-2. Output everything strictly in {language}.
+2. Output the card content in {lang_name}.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown (no **, no ##, no *).
 4. Be CONCISE. One short paragraph per section maximum.
 5. Identify the most common meanings only (max 2-3 senses).
@@ -73,19 +85,53 @@ For EACH meaning, use this EXACT structure:
 
 🏷️ <b>{word.upper()}</b> ([part of speech]) - [Common/Rare/Formal]
 📖 <b>Definition:</b> <i>[clear, precise definition]</i>
-💬 <b>In context:</b> • [Example 1] • [Example 2]
+💬 <b>In context:</b>
+  • "[Example sentence 1]" → <i>[brief explanation of what the word/idiom means in this specific sentence]</i>
+  • "[Example sentence 2]" → <i>[brief explanation of what the word/idiom means in this specific sentence]</i>
 🔄 <b>Synonyms:</b> [2-3 synonyms]
-💡 <b>Tip:</b> [One memorable mnemonic trick or etymology fact]"""
+🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
+💡 <b>Tip:</b> [One memorable mnemonic trick or etymology fact]
 
-    response = client.chat.completions.create(
+IMPORTANT for the Translations line:
+- Provide the most natural equivalent in {other1} and {other2}.
+- If no single word exists, use a short phrase (2-4 words max).
+- For idioms, give the equivalent idiom in each language if one exists, otherwise a literal explanation."""
+
+    draft_response = client.chat.completions.create(
         model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2
+        messages=[{"role": "user", "content": draft_prompt}],
+        temperature=0.3
     )
-    content = response.choices[0].message.content
-    if not content:
+    draft = draft_response.choices[0].message.content
+    if not draft:
         raise Exception("Empty response from AI model")
-    return content
+
+    # ── STEP 2: Self-review & polish ─────────────────────────
+    review_prompt = f"""You are a ruthlessly precise language professor and proofreader.
+Below is a draft dictionary entry for the word "{word}" in {lang_name}.
+
+YOUR TASK — Review and improve it:
+1. Are the example sentences truly natural for a native {lang_name} speaker? If not, rewrite them.
+2. Are there any grammar or spelling mistakes? Fix them.
+3. Is the definition too complex or too vague? Make it clearer.
+4. Are the translations into {other1} and {other2} accurate and natural? Fix if wrong.
+5. Do the contextual explanations after each example sentence clearly explain the meaning? Improve if unclear.
+6. Keep the EXACT same HTML format (<b>, <i> tags, emojis). Do NOT add markdown.
+
+DRAFT TO REVIEW:
+{draft}
+
+Return ONLY the final corrected HTML. No commentary, no preamble."""
+
+    review_response = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": review_prompt}],
+        temperature=0.1
+    )
+    final = review_response.choices[0].message.content
+    if not final:
+        return draft  # Fallback to draft if review fails
+    return final
 
 
 def create_anki_file(word, language_label, html_content):
