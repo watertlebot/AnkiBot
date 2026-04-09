@@ -5,6 +5,9 @@ import tempfile
 import shutil
 import uuid
 import time
+import json
+import urllib.request
+import urllib.parse
 
 # Fix Windows console encoding (cp1252 doesn't support emojis)
 if sys.platform == "win32":
@@ -154,7 +157,49 @@ Return ONLY the final corrected HTML. No commentary, no preamble."""
     return final
 
 
-def create_anki_file(word, language_label, html_content):
+def get_image_search_term(word, language):
+    """Asks AI if this word is a concrete/visual concept. Returns English search term or None."""
+    prompt = f"""Word: "{word}" (Language: {language})
+Is this a concrete, visual word (object, animal, place, food, tool, etc.) that would benefit from a photo on a flashcard?
+- If YES: respond with ONLY a 1-2 word English search term for finding a relevant photo. Nothing else.
+- If NO (idiom, abstract concept, expression, feeling, verb, adjective): respond with ONLY the word "NO". Nothing else."""
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=20
+        )
+        result = response.choices[0].message.content.strip().strip('"')
+        if result.upper() == "NO":
+            return None
+        return result
+    except Exception:
+        return None
+
+
+def download_pixabay_image(search_term):
+    """Downloads a photo from Pixabay. Returns filepath or None."""
+    api_key = os.environ.get("PIXABAY_API_KEY")
+    if not api_key:
+        return None
+    try:
+        query = urllib.parse.quote(search_term)
+        url = f"https://pixabay.com/api/?key={api_key}&q={query}&image_type=photo&per_page=3&safesearch=true"
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read())
+        if not data.get("hits"):
+            return None
+        img_url = data["hits"][0]["webformatURL"]
+        img_path = os.path.join(tempfile.gettempdir(), f"ankibot_{uuid.uuid4().hex[:8]}.jpg")
+        urllib.request.urlretrieve(img_url, img_path)
+        return img_path
+    except Exception as e:
+        print(f"⚠️ Image download failed: {e}")
+        return None
+
+
+def create_anki_file(word, language_label, html_content, image_path=None):
     """Creates an .apkg file in the system temp directory."""
     language_name = language_label.split()[-1]
     deck_name = f"Vocabulary::{language_name}"
@@ -174,6 +219,14 @@ def create_anki_file(word, language_label, html_content):
     )
 
     deck = genanki.Deck(deck_id, deck_name)
+
+    # If an image was downloaded, prepend it to the answer HTML
+    image_filename = None
+    if image_path:
+        image_filename = os.path.basename(image_path)
+        img_tag = f'<div style="text-align:center; margin-bottom:12px;"><img src="{image_filename}" style="max-width:300px; border-radius:8px;"></div>'
+        html_content = img_tag + html_content
+
     note = genanki.Note(model=anki_model, fields=[word.capitalize(), html_content.replace("\n", "<br>")])
     deck.add_note(note)
 
@@ -181,7 +234,10 @@ def create_anki_file(word, language_label, html_content):
     filename = f"{safe_word}_{random.randint(1000, 9999)}.apkg"
     filepath = os.path.join(tempfile.gettempdir(), filename)
 
-    genanki.Package(deck).write_to_file(filepath)
+    package = genanki.Package(deck)
+    if image_path and image_filename:
+        package.media_files = [image_path]
+    package.write_to_file(filepath)
     return filepath
 
 
@@ -246,8 +302,14 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
         conn.commit()
         conn.close()
 
-        # 2. Create Anki file
-        filepath = create_anki_file(word, language, result_html)
+        # 2. Try to find a relevant image (only for concrete/visual words)
+        image_path = None
+        search_term = get_image_search_term(word, language)
+        if search_term:
+            image_path = download_pixabay_image(search_term)
+
+        # 3. Create Anki file (with optional image)
+        filepath = create_anki_file(word, language, result_html, image_path)
 
         # 3. Send file via Telegram + AnkiDroid import button
         safe_filename = word.replace(" ", "_").replace("'", "") + ".apkg"
@@ -271,11 +333,13 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
                 reply_markup=reply_markup
             )
 
-        # 4. Cleanup temp file
-        try:
-            os.remove(filepath)
-        except Exception:
-            pass
+        # 4. Cleanup temp files
+        for f_path in [filepath, image_path]:
+            if f_path:
+                try:
+                    os.remove(f_path)
+                except Exception:
+                    pass
 
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
