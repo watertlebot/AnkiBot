@@ -34,21 +34,43 @@ if not TELEGRAM_TOKEN:
 if not OPENROUTER_API_KEY and not GROQ_API_KEY:
     raise ValueError("❌ At least one API key required: OPENROUTER_API_KEY or GROQ_API_KEY!")
 
-# Primary client: Groq (ultra-fast) if available, otherwise OpenRouter
-if GROQ_API_KEY:
-    client = OpenAI(
-        base_url="https://api.groq.com/openai/v1",
-        api_key=GROQ_API_KEY,
-    )
-    MODEL = "llama-3.3-70b-versatile"
-    print("⚡ Groq mode (fast)")
-else:
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=OPENROUTER_API_KEY,
-    )
-    MODEL = "google/gemma-4-31b-it:free"
-    print("🌐 OpenRouter mode")
+# ─── AI CLIENTS SETUP & FALLBACK ─────────────────────────────
+GROQ_CLIENT = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+OR_CLIENT = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY) if OPENROUTER_API_KEY else None
+
+def ask_ai(prompt, temperature=0.2, max_tokens=None):
+    """Tries Groq first. If rate limited or errors out, falls back to OpenRouter instantly."""
+    last_err = None
+    
+    if GROQ_CLIENT:
+        try:
+            r = GROQ_CLIENT.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            content = r.choices[0].message.content
+            if content: return content
+        except Exception as e:
+            print(f"⚠️ Groq Error (Fallback triggered): {e}")
+            last_err = e
+            
+    if OR_CLIENT:
+        try:
+            r = OR_CLIENT.chat.completions.create(
+                model="google/gemma-4-31b-it:free",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            content = r.choices[0].message.content
+            if content: return content
+        except Exception as e:
+            print(f"⚠️ OpenRouter Error: {e}")
+            last_err = e
+            
+    raise Exception(f"All AI providers failed. Last error: {last_err}")
 
 # ─── TEMPORARY DOWNLOAD DIRECTORY ────────────────────────────
 DOWNLOAD_DIR = os.path.join(tempfile.gettempdir(), "ankibot_downloads")
@@ -120,14 +142,7 @@ IMPORTANT for the Translations line:
 - If no single word exists, use a short phrase (2-4 words max).
 - For idioms, give the equivalent idiom in each language if one exists, otherwise a literal explanation."""
 
-    draft_response = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": draft_prompt}],
-        temperature=0.3
-    )
-    draft = draft_response.choices[0].message.content
-    if not draft:
-        raise Exception("Empty response from AI model")
+    draft = ask_ai(draft_prompt, temperature=0.3)
 
     # ── STEP 2: Self-review & polish ─────────────────────────
     review_prompt = f"""You are a ruthlessly precise language professor and proofreader.
@@ -144,17 +159,11 @@ YOUR TASK — Review and improve it:
 DRAFT TO REVIEW:
 {draft}
 
-Return ONLY the final corrected HTML. No commentary, no preamble."""
-
-    review_response = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": review_prompt}],
-        temperature=0.1
-    )
-    final = review_response.choices[0].message.content
-    if not final:
-        return draft  # Fallback to draft if review fails
-    return final
+    try:
+        final = ask_ai(review_prompt, temperature=0.1)
+        return final
+    except Exception:
+        return draft  # Fallback to draft if review fails completely
 
 
 def get_image_search_term(word, language):
@@ -162,15 +171,9 @@ def get_image_search_term(word, language):
     prompt = f"""Word: "{word}" (Language: {language})
 Is this a concrete, visual word (object, animal, place, food, tool, etc.) that would benefit from a photo on a flashcard?
 - If YES: respond with ONLY a 1-2 word English search term for finding a relevant photo. Nothing else.
-- If NO (idiom, abstract concept, expression, feeling, verb, adjective): respond with ONLY the word "NO". Nothing else."""
     try:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            max_tokens=20
-        )
-        result = response.choices[0].message.content.strip().strip('"')
+        content = ask_ai(prompt, temperature=0.0, max_tokens=20)
+        result = content.strip().strip('"')
         if result.upper() == "NO":
             return None
         return result
