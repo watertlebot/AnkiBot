@@ -38,8 +38,16 @@ if not OPENROUTER_API_KEY and not GROQ_API_KEY:
 GROQ_CLIENT = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 OR_CLIENT = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY) if OPENROUTER_API_KEY else None
 
+# Multiple free models on OpenRouter — if one is rate-limited, try the next
+OR_MODELS = [
+    "google/gemma-4-31b-it:free",
+    "meta-llama/llama-4-maverick:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+    "qwen/qwen3-235b-a22b:free",
+]
+
 def ask_ai(prompt, temperature=0.2, max_tokens=None):
-    """Tries Groq first. If rate limited or errors out, falls back to OpenRouter instantly."""
+    """Tries Groq first, then cycles through multiple free OpenRouter models."""
     last_err = None
     
     if GROQ_CLIENT:
@@ -53,24 +61,29 @@ def ask_ai(prompt, temperature=0.2, max_tokens=None):
             content = r.choices[0].message.content
             if content: return content
         except Exception as e:
-            print(f"⚠️ Groq Error (Fallback triggered): {e}")
+            print(f"⚠️ Groq failed: {e}")
             last_err = e
             
     if OR_CLIENT:
-        try:
-            r = OR_CLIENT.chat.completions.create(
-                model="google/gemma-4-31b-it:free",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-            content = r.choices[0].message.content
-            if content: return content
-        except Exception as e:
-            print(f"⚠️ OpenRouter Error: {e}")
-            last_err = e
+        for model in OR_MODELS:
+            try:
+                print(f"🔄 Trying {model}...")
+                r = OR_CLIENT.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                content = r.choices[0].message.content
+                if content:
+                    print(f"✅ {model} responded!")
+                    return content
+            except Exception as e:
+                print(f"⚠️ {model} failed: {e}")
+                last_err = e
+                continue
             
-    raise Exception(f"All AI providers failed. Last error: {last_err}")
+    raise Exception(f"All AI providers failed. Try again in a few minutes.")
 
 # ─── TEMPORARY DOWNLOAD DIRECTORY ────────────────────────────
 DOWNLOAD_DIR = os.path.join(tempfile.gettempdir(), "ankibot_downloads")
