@@ -12,6 +12,7 @@ if sys.platform == "win32":
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import asyncio
+import sqlite3
 import genanki
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -59,6 +60,25 @@ LANGUAGE_MAP = {
     "🇫🇷 Français":  {"name": "French",     "others": ["English", "Dutch"]},
     "🇳🇱 Nederlands": {"name": "Dutch",      "others": ["English", "French"]},
 }
+
+# ─── DATABASE INITIALIZATION ─────────────────────────────────
+DB_FILE = "ankibot.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS cards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            language TEXT,
+            word TEXT,
+            html_content TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 # ─── CORE FUNCTIONS ──────────────────────────────────────────
 def generate_definition(word, language):
@@ -217,6 +237,15 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
         result_html = generate_definition(word, language)
         await update.message.reply_text(result_html, parse_mode="HTML")
 
+        # Save to database
+        user_id = update.message.from_user.id
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("INSERT INTO cards (user_id, language, word, html_content) VALUES (?, ?, ?, ?)",
+                  (user_id, language, word, result_html))
+        conn.commit()
+        conn.close()
+
         # 2. Create Anki file
         filepath = create_anki_file(word, language, result_html)
 
@@ -263,10 +292,104 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+async def export_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Exports all saved cards for the user, grouped by language."""
+    user_id = update.message.from_user.id
+    
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT language, word, html_content FROM cards WHERE user_id = ?", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    
+    if not rows:
+        await update.message.reply_text("📭 You haven't generated any cards yet. Type /new to start!")
+        return
+        
+    await update.message.reply_text("🗄️ Packing your global decks...")
+    
+    # Group by language
+    decks_by_lang = {}
+    for language, word, html_content in rows:
+        if language not in decks_by_lang:
+            decks_by_lang[language] = []
+        decks_by_lang[language].append((word, html_content))
+        
+    for language, cards in decks_by_lang.items():
+        language_name = language.split()[-1]
+        deck_name = f"My Global Deck::{language_name}"
+        
+        model_id = 1607392319
+        deck_id = hash(deck_name) % (1 << 31) # stable id
+        
+        anki_model = genanki.Model(
+            model_id,
+            'AI Expert Model',
+            fields=[{'name': 'Question'}, {'name': 'Answer'}],
+            templates=[{
+                'name': 'Card 1',
+                'qfmt': '<div style="text-align:center; font-family:Arial; font-size:30px;"><b>{{Question}}</b></div>',
+                'afmt': '{{FrontSide}}<hr><div style="font-family:Arial; font-size:16px; text-align:left;">{{Answer}}</div>',
+            }]
+        )
+        
+        deck = genanki.Deck(deck_id, deck_name)
+        
+        for word, html_content in cards:
+            note = genanki.Note(model=anki_model, fields=[word.capitalize(), html_content.replace("\n", "<br>")])
+            deck.add_note(note)
+            
+        filename = f"Global_Deck_{language_name}.apkg"
+        filepath = os.path.join(tempfile.gettempdir(), filename)
+        genanki.Package(deck).write_to_file(filepath)
+        
+        # Prepare for download
+        RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL")
+        reply_markup = None
+        if RENDER_URL:
+            cleanup_old_files()
+            token = f"Global_{language_name}_{uuid.uuid4().hex[:8]}.apkg"
+            dest = os.path.join(DOWNLOAD_DIR, token)
+            shutil.copy2(filepath, dest)
+            link = f"{RENDER_URL}/dl/{token}"
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("📥 Import to AnkiDroid", url=link)]])
+            
+        with open(filepath, 'rb') as f:
+            await update.message.reply_document(
+                document=f,
+                filename=filename,
+                caption=f"📚 Your complete {language_name} deck ({len(cards)} cards)",
+                reply_markup=reply_markup
+            )
+        try:
+            os.remove(filepath)
+        except Exception:
+            pass
+
+
+async def clear_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Deletes all saved cards for the user."""
+    user_id = update.message.from_user.id
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM cards WHERE user_id = ?", (user_id,))
+    deleted = c.rowcount
+    conn.commit()
+    conn.close()
+    
+    await update.message.reply_text(f"🗑️ Memory wiped! Deleted {deleted} saved cards.")
+
+
 # ─── BOT SETUP ───────────────────────────────────────────────
 def create_app():
     """Creates and configures the PTB application with ConversationHandler."""
+    init_db()  # Initialize the database on startup
+    
     app = Application.builder().token(TELEGRAM_TOKEN).build()
+    
+    app.add_handler(CommandHandler('export', export_cards))
+    app.add_handler(CommandHandler('clear', clear_cards))
+    
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('new', start_creation)],
         states={
