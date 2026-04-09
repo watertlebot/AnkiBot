@@ -3,3 +3,4 @@ openai
 genanki
 python-dotenv
 aiohttp
+gTTS

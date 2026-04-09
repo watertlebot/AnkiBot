@@ -94,9 +94,9 @@ CHOOSE_LANGUAGE, WAITING_WORD = range(2)
 
 # ─── LANGUAGE MAPPING ────────────────────────────────────────
 LANGUAGE_MAP = {
-    "🇬🇧 English":   {"name": "English",    "others": ["French", "Dutch"]},
-    "🇫🇷 Français":  {"name": "French",     "others": ["English", "Dutch"]},
-    "🇳🇱 Nederlands": {"name": "Dutch",      "others": ["English", "French"]},
+    "🇬🇧 English":   {"name": "English",    "others": ["French", "Dutch"],  "tts": "en"},
+    "🇫🇷 Français":  {"name": "French",     "others": ["English", "Dutch"], "tts": "fr"},
+    "🇳🇱 Nederlands": {"name": "Dutch",      "others": ["English", "French"], "tts": "nl"},
 }
 
 # ─── DATABASE INITIALIZATION ─────────────────────────────────
@@ -138,6 +138,7 @@ ABSOLUTE RULES:
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown (no **, no ##, no *).
 4. Be CONCISE. One short paragraph per section maximum.
 5. Identify the most common meanings only (max 2-3 senses).
+6. LANGUAGE LEVEL: All example sentences and explanations MUST be at CEFR level B1 to B2 maximum. Use simple, everyday vocabulary. Avoid academic or literary language.
 
 For EACH meaning, use this EXACT structure:
 
@@ -203,22 +204,52 @@ def download_pixabay_image(search_term):
     if not api_key:
         return None
     try:
-        query = urllib.parse.quote(search_term)
+        # Sanitize search term (remove YES, NO, punctuation)
+        clean_term = search_term.replace("YES", "").replace("NO", "").replace(":", "").replace(".", "").strip()
+        query = urllib.parse.quote(clean_term)
         url = f"https://pixabay.com/api/?key={api_key}&q={query}&image_type=photo&per_page=3&safesearch=true"
-        with urllib.request.urlopen(url, timeout=10) as resp:
+        
+        # Pixabay blocks default urllib User-Agent, so we spoof one
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 AnkiBot'})
+        with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read())
+            
         if not data.get("hits"):
             return None
+            
         img_url = data["hits"][0]["webformatURL"]
         img_path = os.path.join(tempfile.gettempdir(), f"ankibot_{uuid.uuid4().hex[:8]}.jpg")
-        urllib.request.urlretrieve(img_url, img_path)
+        
+        req_img = urllib.request.Request(img_url, headers={'User-Agent': 'Mozilla/5.0 AnkiBot'})
+        with urllib.request.urlopen(req_img, timeout=10) as resp_img, open(img_path, 'wb') as f:
+            f.write(resp_img.read())
+            
         return img_path
     except Exception as e:
         print(f"⚠️ Image download failed: {e}")
         return None
 
 
-def create_anki_file(word, language_label, html_content, image_path=None):
+def generate_audio(word, language):
+    """Generates an MP3 pronunciation of the word using Google TTS. Returns filepath or None."""
+    lang_info = LANGUAGE_MAP.get(language)
+    if not lang_info:
+        return None
+    tts_lang = lang_info.get("tts")
+    if not tts_lang:
+        return None
+    try:
+        from gtts import gTTS
+        audio_path = os.path.join(tempfile.gettempdir(), f"ankibot_audio_{uuid.uuid4().hex[:8]}.mp3")
+        tts = gTTS(text=word, lang=tts_lang, slow=False)
+        tts.save(audio_path)
+        return audio_path
+    except Exception as e:
+        print(f"⚠️ TTS failed: {e}")
+        return None
+
+
+def create_anki_file(word, language_label, html_content, image_path=None, audio_path=None):
     """Creates an .apkg file in the system temp directory."""
     language_name = language_label.split()[-1]
     deck_name = f"Vocabulary::{language_name}"
@@ -240,11 +271,20 @@ def create_anki_file(word, language_label, html_content, image_path=None):
     deck = genanki.Deck(deck_id, deck_name)
 
     # If an image was downloaded, prepend it to the answer HTML
+    media_files = []
     image_filename = None
     if image_path:
         image_filename = os.path.basename(image_path)
         img_tag = f'<div style="text-align:center; margin-bottom:12px;"><img src="{image_filename}" style="max-width:300px; border-radius:8px;"></div>'
         html_content = img_tag + html_content
+        media_files.append(image_path)
+
+    # If audio was generated, append sound tag and add to media
+    audio_filename = None
+    if audio_path:
+        audio_filename = os.path.basename(audio_path)
+        html_content += f'<br><br>🔊 [sound:{audio_filename}]'
+        media_files.append(audio_path)
 
     note = genanki.Note(model=anki_model, fields=[word.capitalize(), html_content.replace("\n", "<br>")])
     deck.add_note(note)
@@ -254,8 +294,8 @@ def create_anki_file(word, language_label, html_content, image_path=None):
     filepath = os.path.join(tempfile.gettempdir(), filename)
 
     package = genanki.Package(deck)
-    if image_path and image_filename:
-        package.media_files = [image_path]
+    if media_files:
+        package.media_files = media_files
     package.write_to_file(filepath)
     return filepath
 
@@ -327,8 +367,11 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
         if search_term:
             image_path = download_pixabay_image(search_term)
 
-        # 3. Create Anki file (with optional image)
-        filepath = create_anki_file(word, language, result_html, image_path)
+        # 3. Generate pronunciation audio
+        audio_path = generate_audio(word, language)
+
+        # 4. Create Anki file (with optional image + audio)
+        filepath = create_anki_file(word, language, result_html, image_path, audio_path)
 
         # 3. Send file via Telegram + AnkiDroid import button
         safe_filename = word.replace(" ", "_").replace("'", "") + ".apkg"
@@ -352,8 +395,8 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
                 reply_markup=reply_markup
             )
 
-        # 4. Cleanup temp files
-        for f_path in [filepath, image_path]:
+        # 5. Cleanup temp files
+        for f_path in [filepath, image_path, audio_path]:
             if f_path:
                 try:
                     os.remove(f_path)
@@ -463,6 +506,44 @@ async def clear_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"🗑️ Memory wiped! Deleted {deleted} saved cards.")
 
 
+async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Shows card generation statistics for the user."""
+    user_id = update.message.from_user.id
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT language, COUNT(*) FROM cards WHERE user_id = ? GROUP BY language", (user_id,))
+    rows = c.fetchall()
+    c.execute("SELECT COUNT(*) FROM cards WHERE user_id = ?", (user_id,))
+    total = c.fetchone()[0]
+    conn.close()
+    
+    if not rows:
+        await update.message.reply_text("📊 No cards yet! Type /new to start generating flashcards.")
+        return
+    
+    lines = ["📊 <b>Your AnkiBot Stats</b>\n"]
+    for language, count in rows:
+        lines.append(f"  • {language}: <b>{count}</b> cards")
+    lines.append(f"\n🎯 <b>Total: {total} cards</b>")
+    lines.append("\n💡 Type /export to download all your cards!")
+    
+    await update.message.reply_text("\n".join(lines), parse_mode="HTML")
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Shows all available commands."""
+    help_text = (
+        "🤖 <b>AnkiBot Commands:</b>\n\n"
+        "🔹 /new - Start generating a flashcard\n"
+        "🔹 /export - Download ALL your saved cards in Anki decks\n"
+        "🔹 /stats - See your learning statistics\n"
+        "🔹 /clear - Delete all your saved memory\n"
+        "🔹 /cancel - Cancel the current action\n"
+        "🔹 /help - Show this message"
+    )
+    await update.message.reply_text(help_text, parse_mode="HTML")
+
+
 # ─── BOT SETUP ───────────────────────────────────────────────
 def create_app():
     """Creates and configures the PTB application with ConversationHandler."""
@@ -472,6 +553,8 @@ def create_app():
     
     app.add_handler(CommandHandler('export', export_cards))
     app.add_handler(CommandHandler('clear', clear_cards))
+    app.add_handler(CommandHandler('stats', show_stats))
+    app.add_handler(CommandHandler('help', help_command))
     
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('new', start_creation)],
