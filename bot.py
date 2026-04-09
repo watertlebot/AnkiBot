@@ -159,6 +159,8 @@ YOUR TASK — Review and improve it:
 DRAFT TO REVIEW:
 {draft}
 
+Return ONLY the final corrected HTML. No commentary, no preamble."""
+
     try:
         final = ask_ai(review_prompt, temperature=0.1)
         return final
@@ -171,6 +173,7 @@ def get_image_search_term(word, language):
     prompt = f"""Word: "{word}" (Language: {language})
 Is this a concrete, visual word (object, animal, place, food, tool, etc.) that would benefit from a photo on a flashcard?
 - If YES: respond with ONLY a 1-2 word English search term for finding a relevant photo. Nothing else.
+- If NO (idiom, abstract concept, expression, feeling, verb, adjective): respond with ONLY the word "NO". Nothing else."""
     try:
         content = ask_ai(prompt, temperature=0.0, max_tokens=20)
         result = content.strip().strip('"')
