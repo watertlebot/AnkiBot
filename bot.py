@@ -345,7 +345,22 @@ async def receive_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     word = update.message.text
     language = context.user_data['language']
-    await update.message.reply_text(f"⏳ Analyzing '{word}'...")
+    user_id = update.message.from_user.id
+    
+    # Check if word was already searched
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM cards WHERE user_id = ? AND language = ? AND LOWER(word) = LOWER(?)", 
+              (user_id, language, word))
+    times_searched = c.fetchone()[0]
+    conn.close()
+
+    reminder = ""
+    if times_searched > 0:
+        times_str = "time" if times_searched == 1 else "times"
+        reminder = f"🧠 <i>Memory check: You already generated a card for this word {times_searched} {times_str} before!</i>\n\n"
+
+    await update.message.reply_text(f"{reminder}⏳ Analyzing '{word}'...", parse_mode="HTML")
 
     try:
         # 1. Generate AI definition
