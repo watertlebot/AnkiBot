@@ -405,8 +405,9 @@ Return ONLY a valid JSON object in this exact format, with no markdown formattin
 
     try:
         # 1. Generate AI definition
-        result_html = generate_definition(word, language)
-        await update.message.reply_text(result_html, parse_mode="HTML")
+        # Telegram doesn't support <hr> or <br> tags in parse_mode="HTML", but Anki does
+        telegram_preview = result_html.replace("<hr>", "\n───────────────\n").replace("<br>", "\n")
+        await update.message.reply_text(telegram_preview, parse_mode="HTML")
 
         # Save to database
         user_id = update.message.from_user.id
