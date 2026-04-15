@@ -151,7 +151,7 @@ For EACH distinct meaning, use this EXACT structure (if there are multiple meani
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
 
 (Only put the Tip ONCE at the very bottom of the card, do not repeat it per meaning):
-💡 <b>Tip:</b> [One memorable mnemonic trick or etymology fact]
+💡 <b>Tip:</b> [Explain a typical real-life conversation context where a native speaker would naturally use this word]
 
 IMPORTANT for the Translations line:
 - Provide the most natural equivalent in {other1} and {other2}.
