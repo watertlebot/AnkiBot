@@ -137,18 +137,20 @@ ABSOLUTE RULES:
 2. Output the card content in {lang_name}.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown (no **, no ##, no *).
 4. Be CONCISE. One short paragraph per section maximum.
-5. Identify the most common meanings only (max 2-3 senses).
+5. MULTIPLE MEANINGS: If the word has multiple distinct, common meanings (e.g., a literal sense and a figurative sense, or different contexts like medical vs. business), you MUST document ALL of them (up to 3). Do NOT just give one definition if others exist.
 6. LANGUAGE LEVEL: All example sentences and explanations MUST be at CEFR level B1 to B2 maximum. Use simple, everyday vocabulary. Avoid academic or literary language.
 
-For EACH meaning, use this EXACT structure:
+For EACH distinct meaning, use this EXACT structure (if there are multiple meanings, separate them with an <hr> tag):
 
-🏷️ <b>{word.upper()}</b> ([part of speech]) - [Common/Rare/Formal]
-📖 <b>Definition:</b> <i>[clear, precise definition]</i>
+🏷️ <b>{word.upper()}</b> ([part of speech]) - [Specific Context/Usage]
+📖 <b>Definition:</b> <i>[clear, precise definition of this specific meaning]</i>
 💬 <b>In context:</b>
-  • "[Example sentence 1]" → <i>[brief explanation of what the word/idiom means in this specific sentence]</i>
-  • "[Example sentence 2]" → <i>[brief explanation of what the word/idiom means in this specific sentence]</i>
-🔄 <b>Synonyms:</b> [2-3 synonyms]
+  • "[Example sentence 1 for this meaning]" → <i>[brief explanation]</i>
+  • "[Example sentence 2 for this meaning]" → <i>[brief explanation]</i>
+🔄 <b>Synonyms:</b> [2-3 synonyms for this exact meaning]
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
+
+(Only put the Tip ONCE at the very bottom of the card, do not repeat it per meaning):
 💡 <b>Tip:</b> [One memorable mnemonic trick or etymology fact]
 
 IMPORTANT for the Translations line:
