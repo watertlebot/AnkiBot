@@ -137,9 +137,10 @@ ABSOLUTE RULES:
 2. Output the card content in {lang_name}.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown (no **, no ##, no *).
 4. Be CONCISE. One short paragraph per section maximum.
-5. MULTIPLE MEANINGS: If the word has multiple distinct, common meanings (e.g., a literal sense and a figurative sense, or different contexts like medical vs. business), you MUST document ALL of them (up to 3). Do NOT just give one definition if others exist.
+5. PRIMARY MEANING FIRST: You MUST always start with the MOST COMMON, EVERYDAY meaning of the word. For example, "appel" in Dutch = the fruit (apple) FIRST, not "appeal". NEVER skip the obvious primary meaning. If the word has additional distinct meanings, add them AFTER the primary one (up to 3 total), separated by <hr>.
 6. LANGUAGE LEVEL: All example sentences and explanations MUST be at CEFR level B1 to B2 maximum. Use simple, everyday vocabulary. Avoid academic or literary language.
-7. NATURAL EXAMPLES ONLY: Every example sentence MUST be something a native speaker would ACTUALLY say or write in real life. NEVER force the word into a context where it would not naturally be used. If the word is rare, historical, or specialized (e.g. "dîme", "féodal"), your examples MUST reflect that context (history, religion, literature, etc.) — do NOT invent fake modern everyday uses. Ask yourself: "Would a native speaker really say this sentence?" If the answer is no, rewrite it.
+7. NATURAL EXAMPLES ONLY: Every example sentence MUST be something a native speaker would ACTUALLY say or write in real life. NEVER force the word into a context where it would not naturally be used. If the word is rare, historical, or specialized, your examples MUST reflect that real context — do NOT invent fake modern everyday uses. Ask yourself: "Would a native speaker really say this sentence?" If the answer is no, rewrite it.
+8. STAY IN THE CORRECT LANGUAGE: The word belongs to {lang_name}. Define it as a {lang_name} word. Do NOT confuse it with a similar word from another language (e.g. Dutch "appel" = apple ≠ French "appel" = phone call).
 
 For EACH distinct meaning, use this EXACT structure (if there are multiple meanings, separate them with an <hr> tag):
 
