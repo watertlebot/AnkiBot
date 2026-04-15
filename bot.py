@@ -8,6 +8,7 @@ import time
 import json
 import urllib.request
 import urllib.parse
+import re
 
 # Fix Windows console encoding (cp1252 doesn't support emojis)
 if sys.platform == "win32":
@@ -427,11 +428,23 @@ Return ONLY a valid JSON object in this exact format, with no markdown formattin
         conn.commit()
         conn.close()
 
-        # 2. Try to find a relevant image (only for concrete/visual words)
+        # 2. Try to find a relevant image
         image_path = None
-        search_term = get_image_search_term(word, language)
-        if search_term:
-            image_path = download_pixabay_image(search_term)
+        try:
+            # Extract the English translation from the card we already generated (no extra AI call needed)
+            eng_match = re.search(r'English:\s*([^|<\n]+)', result_html)
+            if eng_match:
+                eng_term = eng_match.group(1).strip().split(',')[0].strip()
+                # Only search for concrete/short terms (likely objects, not phrases)
+                if len(eng_term.split()) <= 2 and len(eng_term) > 1:
+                    print(f"🖼️ Trying Pixabay image for: '{eng_term}'")
+                    image_path = download_pixabay_image(eng_term)
+                else:
+                    print(f"🖼️ Skipping image — '{eng_term}' looks abstract/too long")
+            else:
+                print("🖼️ No English translation found in card — skipping image")
+        except Exception as e:
+            print(f"⚠️ Image extraction failed: {e}")
 
         # 3. Generate pronunciation audio
         audio_path = generate_audio(word, language)
