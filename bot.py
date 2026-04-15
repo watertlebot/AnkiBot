@@ -139,19 +139,20 @@ ABSOLUTE RULES:
 4. Be CONCISE. One short paragraph per section maximum.
 5. MULTIPLE MEANINGS: If the word has multiple distinct, common meanings (e.g., a literal sense and a figurative sense, or different contexts like medical vs. business), you MUST document ALL of them (up to 3). Do NOT just give one definition if others exist.
 6. LANGUAGE LEVEL: All example sentences and explanations MUST be at CEFR level B1 to B2 maximum. Use simple, everyday vocabulary. Avoid academic or literary language.
+7. NATURAL EXAMPLES ONLY: Every example sentence MUST be something a native speaker would ACTUALLY say or write in real life. NEVER force the word into a context where it would not naturally be used. If the word is rare, historical, or specialized (e.g. "dîme", "féodal"), your examples MUST reflect that context (history, religion, literature, etc.) — do NOT invent fake modern everyday uses. Ask yourself: "Would a native speaker really say this sentence?" If the answer is no, rewrite it.
 
 For EACH distinct meaning, use this EXACT structure (if there are multiple meanings, separate them with an <hr> tag):
 
 🏷️ <b>{word.upper()}</b> ([part of speech]) - [Specific Context/Usage]
 📖 <b>Definition:</b> <i>[clear, precise definition of this specific meaning]</i>
 💬 <b>In context:</b>
-  • "[Example sentence 1 for this meaning]" → <i>[brief explanation]</i>
-  • "[Example sentence 2 for this meaning]" → <i>[brief explanation]</i>
+  • "[Example sentence 1 — must be natural and authentic]" → <i>[brief explanation]</i>
+  • "[Example sentence 2 — must be natural and authentic]" → <i>[brief explanation]</i>
 🔄 <b>Synonyms:</b> [2-3 synonyms for this exact meaning]
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
 
 (Only put the Tip ONCE at the very bottom of the card, do not repeat it per meaning):
-💡 <b>Tip:</b> [Explain a typical real-life conversation context where a native speaker would naturally use this word]
+💡 <b>Tip:</b> [Explain a typical real-life conversation or situation where a native speaker would naturally use this word. If the word is rare or historical, say so honestly.]
 
 IMPORTANT for the Translations line:
 - Provide the most natural equivalent in {other1} and {other2}.
@@ -165,7 +166,7 @@ IMPORTANT for the Translations line:
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
 YOUR TASK — Review and improve it:
-1. Are the example sentences truly natural for a native {lang_name} speaker? If not, rewrite them.
+1. NATURALNESS CHECK (MOST IMPORTANT): Read every example sentence and ask yourself: "Would a real native {lang_name} speaker actually say this in real life?" If the answer is NO, you MUST rewrite the sentence with an authentic example. NEVER allow forced or invented usage. If the word is rare/historical, examples must stay in that domain.
 2. Are there any grammar or spelling mistakes? Fix them.
 3. Is the definition too complex or too vague? Make it clearer.
 4. Are the translations into {other1} and {other2} accurate and natural? Fix if wrong.
