@@ -141,6 +141,8 @@ ABSOLUTE RULES:
 6. LANGUAGE LEVEL: All example sentences and explanations MUST be at CEFR level B1 to B2 maximum. Use simple, everyday vocabulary. Avoid academic or literary language.
 7. NATURAL EXAMPLES ONLY: Every example sentence MUST be something a native speaker would ACTUALLY say or write in real life. NEVER force the word into a context where it would not naturally be used. If the word is rare, historical, or specialized, your examples MUST reflect that real context — do NOT invent fake modern everyday uses. Ask yourself: "Would a native speaker really say this sentence?" If the answer is no, rewrite it.
 8. STAY IN THE CORRECT LANGUAGE: The word belongs to {lang_name}. Define it as a {lang_name} word. Do NOT confuse it with a similar word from another language (e.g. Dutch "appel" = apple ≠ French "appel" = phone call).
+9. CORRECT SYNONYMS ONLY: Synonyms must be words with the SAME meaning. NOT related words, NOT hypernyms, NOT words from the same category. Example: "pear" is NOT a synonym of "apple". If no true synonyms exist, write "—".
+10. NO HALLUCINATED MEANINGS: Only include meanings you are 100% certain actually exist and are commonly used in {lang_name}. If a word has only ONE real meaning, give only one. Do NOT invent secondary meanings to make the card look more complete.
 
 For EACH distinct meaning, use this EXACT structure (if there are multiple meanings, separate them with an <hr> tag):
 
@@ -149,11 +151,11 @@ For EACH distinct meaning, use this EXACT structure (if there are multiple meani
 💬 <b>In context:</b>
   • "[Example sentence 1 — must be natural and authentic]" → <i>[brief explanation]</i>
   • "[Example sentence 2 — must be natural and authentic]" → <i>[brief explanation]</i>
-🔄 <b>Synonyms:</b> [2-3 synonyms for this exact meaning]
+🔄 <b>Synonyms:</b> [2-3 TRUE synonyms only, or "—" if none exist]
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
 
 (Only put the Tip ONCE at the very bottom of the card, do not repeat it per meaning):
-💡 <b>Tip:</b> [Explain a typical real-life conversation or situation where a native speaker would naturally use this word. If the word is rare or historical, say so honestly.]
+💡 <b>Tip:</b> [One short sentence: in what real-life situation would you hear or use this word?]
 
 IMPORTANT for the Translations line:
 - Provide the most natural equivalent in {other1} and {other2}.
@@ -167,12 +169,14 @@ IMPORTANT for the Translations line:
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
 YOUR TASK — Review and improve it:
-1. NATURALNESS CHECK (MOST IMPORTANT): Read every example sentence and ask yourself: "Would a real native {lang_name} speaker actually say this in real life?" If the answer is NO, you MUST rewrite the sentence with an authentic example. NEVER allow forced or invented usage. If the word is rare/historical, examples must stay in that domain.
-2. Are there any grammar or spelling mistakes? Fix them.
-3. Is the definition too complex or too vague? Make it clearer.
-4. Are the translations into {other1} and {other2} accurate and natural? Fix if wrong.
-5. Do the contextual explanations after each example sentence clearly explain the meaning? Improve if unclear.
-6. Keep the EXACT same HTML format (<b>, <i> tags, emojis). Do NOT add markdown.
+1. NATURALNESS CHECK (MOST IMPORTANT): Read every example sentence and ask: "Would a real native {lang_name} speaker actually say this?" If NO, rewrite it with an authentic example.
+2. SYNONYM CHECK: Are the listed synonyms ACTUALLY synonyms (same meaning)? Remove any that are just related words or words from the same category. "pear" is NOT a synonym of "apple".
+3. MEANING CHECK: Are ALL listed meanings real and commonly used in {lang_name}? Remove any meaning that is hallucinated, extremely rare, or borrowed from another language's definition.
+4. Are there any grammar or spelling mistakes? Fix them.
+5. Is the definition too complex or too vague? Make it clearer.
+6. Are the translations into {other1} and {other2} accurate and natural? Fix if wrong.
+7. Is the Tip concise (1-2 sentences max)? If it's too long, shorten it.
+8. Keep the EXACT same HTML format (<b>, <i> tags, emojis). Do NOT add markdown.
 
 DRAFT TO REVIEW:
 {draft}
