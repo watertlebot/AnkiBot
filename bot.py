@@ -367,6 +367,19 @@ Reply with ONLY the exact name of the language (English, French, or Dutch). No p
             
         context.user_data['language'] = language
         await update.message.reply_text(f"✅ Auto-detected: <b>{language}</b>", parse_mode="HTML")
+        
+    # Auto-spellcheck
+    spellcheck_prompt = f"""Target word: "{word}"
+Language: {language}
+Correct any obvious spelling mistakes or missing hyphens in this word. If it's already perfectly correct, return it exactly as is.
+Return ONLY the corrected word. No punctuation, no explanation."""
+    try:
+        corrected = ask_ai(spellcheck_prompt, temperature=0.0, max_tokens=15).strip().replace('"', '').strip('.').lower()
+        if corrected and len(corrected) > 0 and corrected != word.lower():
+            word = corrected
+            await update.message.reply_text(f"✨ <i>Auto-corrected typo to: <b>{word}</b></i>", parse_mode="HTML")
+    except Exception:
+        pass
     
     # Check if word was already searched
     conn = sqlite3.connect(DB_FILE)
