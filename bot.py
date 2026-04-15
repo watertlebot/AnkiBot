@@ -347,6 +347,27 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
     language = context.user_data['language']
     user_id = update.message.from_user.id
     
+    # Auto-detect language if user misclicked
+    valid_languages = ["🇬🇧 English", "🇫🇷 Français", "🇳🇱 Nederlands"]
+    if language not in valid_languages:
+        await update.message.reply_text("🤖 <i>Invalid language detected. Determining the correct deck...</i>", parse_mode="HTML")
+        detect_prompt = f"""Word: "{word}"
+Which of these 3 languages does this word belong to: English, French, or Dutch?
+Reply with ONLY the exact name of the language (English, French, or Dutch). No punctuation."""
+        try:
+            detected_lang = ask_ai(detect_prompt, temperature=0.0, max_tokens=10).strip().lower()
+            if "french" in detected_lang:
+                language = "🇫🇷 Français"
+            elif "dutch" in detected_lang:
+                language = "🇳🇱 Nederlands"
+            else:
+                language = "🇬🇧 English"
+        except Exception:
+            language = "🇬🇧 English"
+            
+        context.user_data['language'] = language
+        await update.message.reply_text(f"✅ Auto-detected: <b>{language}</b>", parse_mode="HTML")
+    
     # Check if word was already searched
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
