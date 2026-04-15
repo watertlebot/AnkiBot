@@ -133,55 +133,52 @@ Target Word: "{word}"
 Target Language: {lang_name}
 
 ABSOLUTE RULES:
-1. ACCURACY IS PARAMOUNT. Every definition, example, and etymology MUST be factually correct. Do NOT invent false etymologies or incorrect meanings.
+1. ACCURACY IS PARAMOUNT. Do NOT invent meanings, etymologies, or uses that don't exist.
 2. Output the card content in {lang_name}.
-3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown (no **, no ##, no *).
-4. Be CONCISE. One short paragraph per section maximum.
-5. PRIMARY MEANING FIRST: You MUST always start with the MOST COMMON, EVERYDAY meaning of the word. For example, "appel" in Dutch = the fruit (apple) FIRST, not "appeal". NEVER skip the obvious primary meaning. If the word has additional distinct meanings, add them AFTER the primary one (up to 3 total), separated by <hr>.
-6. LANGUAGE LEVEL: All example sentences and explanations MUST be at CEFR level B1 to B2 maximum. Use simple, everyday vocabulary. Avoid academic or literary language.
-7. NATURAL EXAMPLES ONLY: Every example sentence MUST be something a native speaker would ACTUALLY say or write in real life. NEVER force the word into a context where it would not naturally be used. If the word is rare, historical, or specialized, your examples MUST reflect that real context — do NOT invent fake modern everyday uses. Ask yourself: "Would a native speaker really say this sentence?" If the answer is no, rewrite it.
-8. STAY IN THE CORRECT LANGUAGE: The word belongs to {lang_name}. Define it as a {lang_name} word. Do NOT confuse it with a similar word from another language (e.g. Dutch "appel" = apple ≠ French "appel" = phone call).
-9. CORRECT SYNONYMS ONLY: Synonyms must be words with the SAME meaning. NOT related words, NOT hypernyms, NOT words from the same category. Example: "pear" is NOT a synonym of "apple". If no true synonyms exist, write "—".
-10. NO HALLUCINATED MEANINGS: Only include meanings you are 100% certain actually exist and are commonly used in {lang_name}. If a word has only ONE real meaning, give only one. Do NOT invent secondary meanings to make the card look more complete.
+3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown.
+4. Be CONCISE. Short paragraphs only.
+5. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning of the word. Add a second meaning ONLY if you can cite a real, well-known usage (e.g. "bank" = furniture AND financial institution). When in doubt, give ONE meaning only. NEVER invent a meaning just to fill space.
+6. LANGUAGE LEVEL: Examples must be CEFR B1-B2. Simple everyday vocabulary.
+7. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say. If a word is rare or historical, examples must reflect that context.
+8. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT apply meanings from other languages (e.g. Dutch "appel" = apple, NOT French "appel" = phone call).
+9. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. "pear" is NOT a synonym of "apple". Write "—" if none exist.
 
-For EACH distinct meaning, use this EXACT structure (if there are multiple meanings, separate them with an <hr> tag):
+Use this EXACT structure:
 
-🏷️ <b>{word.upper()}</b> ([part of speech]) - [Specific Context/Usage]
-📖 <b>Definition:</b> <i>[clear, precise definition of this specific meaning]</i>
+🏷️ <b>{word.upper()}</b> ([part of speech])
+📖 <b>Definition:</b> <i>[clear, precise definition]</i>
 💬 <b>In context:</b>
-  • "[Example sentence 1 — must be natural and authentic]" → <i>[brief explanation]</i>
-  • "[Example sentence 2 — must be natural and authentic]" → <i>[brief explanation]</i>
-🔄 <b>Synonyms:</b> [2-3 TRUE synonyms only, or "—" if none exist]
+  • "[natural example sentence]" → <i>[brief explanation]</i>
+  • "[natural example sentence]" → <i>[brief explanation]</i>
+🔄 <b>Synonyms:</b> [true synonyms or "—"]
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
+💡 <b>Tip:</b> [One short sentence: when would a native speaker use this word?]
 
-(Only put the Tip ONCE at the very bottom of the card, do not repeat it per meaning):
-💡 <b>Tip:</b> [One short sentence: in what real-life situation would you hear or use this word?]
+If (and ONLY if) a well-known second meaning exists, add it after an <hr> tag using the same structure (without repeating the Tip).
 
-IMPORTANT for the Translations line:
+IMPORTANT for Translations:
 - Provide the most natural equivalent in {other1} and {other2}.
 - If no single word exists, use a short phrase (2-4 words max).
-- For idioms, give the equivalent idiom in each language if one exists, otherwise a literal explanation."""
+- For idioms, give the equivalent idiom if one exists."""
 
     draft = ask_ai(draft_prompt, temperature=0.3)
 
     # ── STEP 2: Self-review & polish ─────────────────────────
-    review_prompt = f"""You are a ruthlessly precise language professor and proofreader.
+    review_prompt = f"""You are a ruthlessly precise {lang_name} language professor.
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
-YOUR TASK — Review and improve it:
-1. NATURALNESS CHECK (MOST IMPORTANT): Read every example sentence and ask: "Would a real native {lang_name} speaker actually say this?" If NO, rewrite it with an authentic example.
-2. SYNONYM CHECK: Are the listed synonyms ACTUALLY synonyms (same meaning)? Remove any that are just related words or words from the same category. "pear" is NOT a synonym of "apple".
-3. MEANING CHECK: Are ALL listed meanings real and commonly used in {lang_name}? Remove any meaning that is hallucinated, extremely rare, or borrowed from another language's definition.
-4. Are there any grammar or spelling mistakes? Fix them.
-5. Is the definition too complex or too vague? Make it clearer.
-6. Are the translations into {other1} and {other2} accurate and natural? Fix if wrong.
-7. Is the Tip concise (1-2 sentences max)? If it's too long, shorten it.
-8. Keep the EXACT same HTML format (<b>, <i> tags, emojis). Do NOT add markdown.
+YOUR TASK — Review, correct, and DELETE anything wrong:
+1. MEANING PURGE: If ANY listed meaning is fake, hallucinated, extremely rare, or borrowed from another language — DELETE that entire meaning block. Be aggressive. Only keep meanings you are 100% sure exist in {lang_name}.
+2. NATURALNESS: Would a native {lang_name} speaker actually say each example sentence? If not, rewrite.
+3. SYNONYMS: Are they TRUE synonyms (same meaning)? Delete any that are just related words.
+4. Fix grammar/spelling mistakes.
+5. Are translations into {other1} and {other2} accurate? Fix if wrong.
+6. Keep HTML format (<b>, <i> tags, emojis). No markdown.
 
 DRAFT TO REVIEW:
 {draft}
 
-Return ONLY the final corrected HTML. No commentary, no preamble."""
+Return ONLY the corrected HTML. Delete fake meanings entirely. No commentary."""
 
     try:
         final = ask_ai(review_prompt, temperature=0.1)
