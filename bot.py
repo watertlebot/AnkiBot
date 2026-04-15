@@ -347,40 +347,45 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
     language = context.user_data['language']
     user_id = update.message.from_user.id
     
-    # Auto-detect language if user misclicked
     valid_languages = ["🇬🇧 English", "🇫🇷 Français", "🇳🇱 Nederlands"]
-    if language not in valid_languages:
-        await update.message.reply_text("🤖 <i>Invalid language detected. Determining the correct deck...</i>", parse_mode="HTML")
-        detect_prompt = f"""Word: "{word}"
-Which of these 3 languages does this word belong to: English, French, or Dutch?
-Reply with ONLY the exact name of the language (English, French, or Dutch). No punctuation."""
-        try:
-            detected_lang = ask_ai(detect_prompt, temperature=0.0, max_tokens=10).strip().lower()
-            if "french" in detected_lang:
-                language = "🇫🇷 Français"
-            elif "dutch" in detected_lang:
-                language = "🇳🇱 Nederlands"
-            else:
-                language = "🇬🇧 English"
-        except Exception:
-            language = "🇬🇧 English"
-            
-        context.user_data['language'] = language
-        await update.message.reply_text(f"✅ Auto-detected: <b>{language}</b>", parse_mode="HTML")
-        
-    # Auto-spellcheck
-    spellcheck_prompt = f"""Target word: "{word}"
-Language: {language}
-Correct any obvious spelling mistakes or missing hyphens in this word. If it's already perfectly correct, return it exactly as is.
-Return ONLY the corrected word. No punctuation, no explanation."""
-    try:
-        corrected = ask_ai(spellcheck_prompt, temperature=0.0, max_tokens=15).strip().replace('"', '').strip('.').lower()
-        if corrected and len(corrected) > 0 and corrected != word.lower():
-            word = corrected
-            await update.message.reply_text(f"✨ <i>Auto-corrected typo to: <b>{word}</b></i>", parse_mode="HTML")
-    except Exception:
-        pass
     
+    # Intelligent Pre-flight Check: Fix language mismatches and spelling typos
+    preflight_prompt = f"""Word: "{word}"
+User Selected Language: "{language}"
+
+Task:
+1. Is the selected language blatantly wrong for this word? (e.g. user selected "Dutch" but typed "Bonjour", which is French). If it's a mistake, identify the correct language from the 3 options below. If the word naturally exists in the selected language, KEEP the selected language.
+2. Correct any obvious spelling mistakes in the word (e.g. "appell" -> "appel", "etre" -> "bien-être").
+
+Return ONLY a valid JSON object in this exact format, with no markdown formatting:
+{{"word": "[Corrected Word]", "language": "[🇬🇧 English or 🇫🇷 Français or 🇳🇱 Nederlands]"}}"""
+
+    try:
+        response = ask_ai(preflight_prompt, temperature=0.0, max_tokens=40).strip()
+        response = response.replace('```json', '').replace('```', '').strip()
+        data = json.loads(response)
+        
+        detected_lang = data.get("language", language)
+        corrected_word = data.get("word", word)
+        
+        # 1. Check if language was corrected
+        if detected_lang != language and detected_lang in valid_languages:
+            language = detected_lang
+            context.user_data['language'] = language
+            await update.message.reply_text(f"🌍 <i>Language mismatch! Auto-switching to: <b>{language}</b></i>", parse_mode="HTML")
+            
+        # 2. Check if spelling was corrected
+        if corrected_word and len(corrected_word) > 0 and corrected_word.lower() != word.lower():
+            word = corrected_word
+            await update.message.reply_text(f"✨ <i>Auto-corrected typo to: <b>{word}</b></i>", parse_mode="HTML")
+            
+    except Exception as e:
+        print(f"Pre-flight failed: {e}")
+        # Fallback to English if the user typed an invalid category manually and JSON failed
+        if language not in valid_languages:
+            language = "🇬🇧 English"
+            context.user_data['language'] = language
+            
     # Check if word was already searched
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
