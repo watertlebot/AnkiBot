@@ -193,10 +193,12 @@ Is this a concrete, visual word (object, animal, place, food, tool, etc.) that w
     try:
         content = ask_ai(prompt, temperature=0.0, max_tokens=20)
         result = content.strip().strip('"')
+        print(f"🖼️ Image check for '{word}': AI responded '{result}'")
         if result.upper() == "NO":
             return None
         return result
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ Image check failed: {e}")
         return None
 
 
@@ -204,6 +206,7 @@ def download_pixabay_image(search_term):
     """Downloads a photo from Pixabay. Returns filepath or None."""
     api_key = os.environ.get("PIXABAY_API_KEY")
     if not api_key:
+        print("⚠️ PIXABAY_API_KEY not set — skipping image")
         return None
     try:
         # Sanitize search term (remove YES, NO, punctuation)
@@ -217,8 +220,10 @@ def download_pixabay_image(search_term):
             data = json.loads(resp.read())
             
         if not data.get("hits"):
+            print(f"⚠️ Pixabay returned 0 results for '{clean_term}'")
             return None
-            
+        
+        print(f"✅ Pixabay found {len(data['hits'])} images for '{clean_term}'")
         img_url = data["hits"][0]["webformatURL"]
         img_path = os.path.join(tempfile.gettempdir(), f"ankibot_{uuid.uuid4().hex[:8]}.jpg")
         
@@ -405,6 +410,7 @@ Return ONLY a valid JSON object in this exact format, with no markdown formattin
 
     try:
         # 1. Generate AI definition
+        result_html = generate_definition(word, language)
         # Telegram doesn't support <hr> or <br> tags in parse_mode="HTML", but Anki does
         telegram_preview = result_html.replace("<hr>", "\n───────────────\n").replace("<br>", "\n")
         await update.message.reply_text(telegram_preview, parse_mode="HTML")
