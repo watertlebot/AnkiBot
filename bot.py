@@ -137,28 +137,29 @@ ABSOLUTE RULES:
 1. ACCURACY IS PARAMOUNT. Do NOT invent meanings, etymologies, or uses that don't exist.
 2. Output the card content in {lang_name}.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown.
-4. Be CONCISE. Short paragraphs only.
-5. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning of the word. Add a second meaning ONLY if you can cite a real, well-known usage (e.g. "bank" = furniture AND financial institution). When in doubt, give ONE meaning only. NEVER invent a meaning just to fill space.
-6. LANGUAGE LEVEL: Examples must be CEFR B1-B2. Simple everyday vocabulary.
-7. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say. If a word is rare or historical, examples must reflect that context.
-8. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT apply meanings from other languages (e.g. Dutch "appel" = apple, NOT French "appel" = phone call).
-9. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. "pear" is NOT a synonym of "apple". Write "—" if none exist.
+4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary. Example: say "a point where something slows down because it can't move as fast as the rest" instead of "a narrow or restricted place that slows down or blocks the flow of something, such as traffic, production, or a process".
+5. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning. Add a second meaning ONLY if it's well-known and real (e.g. "bank" = furniture AND financial institution). When in doubt, ONE meaning only. NEVER invent meanings.
+6. LANGUAGE LEVEL: Everything must be CEFR B1-B2 max. Simple everyday words.
+7. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say.
+8. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT confuse with similar words from other languages.
+9. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. Write "—" if none exist.
+10. MANDATORY EXPLANATIONS: Every example sentence MUST be followed by " → " and a short, simple explanation of what the word means in that specific sentence. NEVER omit the explanation. This is NON-NEGOTIABLE.
 
 Use this EXACT structure:
 
 🏷️ <b>{word.upper()}</b> ([part of speech])
-📖 <b>Definition:</b> <i>[clear, precise definition]</i>
+📖 <b>Definition:</b> <i>[simple, clear definition — like explaining to a friend]</i>
 💬 <b>In context:</b>
-  • "[natural example sentence]" → <i>[brief explanation]</i>
-  • "[natural example sentence]" → <i>[brief explanation]</i>
+  • "[natural example sentence]" → <i>[what does the word mean here? Explain simply]</i>
+  • "[natural example sentence]" → <i>[what does the word mean here? Explain simply]</i>
 🔄 <b>Synonyms:</b> [true synonyms or "—"]
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
-💡 <b>Tip:</b> [One short sentence: when would a native speaker use this word?]
+💡 <b>Tip:</b> [One short sentence: when would you hear this word in real life?]
 
 If (and ONLY if) a well-known second meaning exists, add it after an <hr> tag using the same structure (without repeating the Tip).
 
 IMPORTANT for Translations:
-- Provide the most natural equivalent in {other1} and {other2}.
+- Most natural equivalent in {other1} and {other2}.
 - If no single word exists, use a short phrase (2-4 words max).
 - For idioms, give the equivalent idiom if one exists."""
 
@@ -169,12 +170,13 @@ IMPORTANT for Translations:
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
 YOUR TASK — Review, correct, and DELETE anything wrong:
-1. MEANING PURGE: If ANY listed meaning is fake, hallucinated, extremely rare, or borrowed from another language — DELETE that entire meaning block. Be aggressive. Only keep meanings you are 100% sure exist in {lang_name}.
-2. NATURALNESS: Would a native {lang_name} speaker actually say each example sentence? If not, rewrite.
-3. SYNONYMS: Are they TRUE synonyms (same meaning)? Delete any that are just related words.
-4. Fix grammar/spelling mistakes.
-5. Are translations into {other1} and {other2} accurate? Fix if wrong.
-6. Keep HTML format (<b>, <i> tags, emojis). No markdown.
+1. MEANING PURGE: If ANY listed meaning is fake, hallucinated, or borrowed from another language — DELETE that entire block.
+2. EXPLANATION CHECK: Every single example sentence MUST have a " → " followed by a simple explanation. If any explanation is missing, ADD it. If an explanation is too complex or sounds like a dictionary, REWRITE it in simple everyday words.
+3. DEFINITION SIMPLICITY: Is the definition written like a dictionary? Rewrite it like you're explaining to a friend. Keep it short and natural.
+4. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
+5. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
+6. Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
+7. Keep HTML format (<b>, <i> tags, emojis). No markdown.
 
 DRAFT TO REVIEW:
 {draft}
