@@ -134,27 +134,27 @@ Target Word: "{word}"
 Target Language: {lang_name}
 
 ABSOLUTE RULES:
-1. ACCURACY IS PARAMOUNT. Do NOT invent meanings, etymologies, or uses that don't exist.
-2. Output the card content in {lang_name}.
+1. ACCURACY IS PARAMOUNT. Do NOT invent meanings, etymologies, or uses that don't exist. If the word does NOT exist in {lang_name}, say so.
+2. ALL CONTENT IN {lang_name}: The definition, the example sentences, AND the explanations after "→" must ALL be written in {lang_name}. The ONLY exception is the Translations line. NEVER write definitions or explanations in English unless {lang_name} IS English.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown.
-4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary. Example: say "a point where something slows down because it can't move as fast as the rest" instead of "a narrow or restricted place that slows down or blocks the flow of something, such as traffic, production, or a process".
-5. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning. Add a second meaning ONLY if it's well-known and real (e.g. "bank" = furniture AND financial institution). When in doubt, ONE meaning only. NEVER invent meanings.
+4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary.
+5. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning. Add a second meaning ONLY if it's well-known and real. When in doubt, ONE meaning only. NEVER invent meanings.
 6. LANGUAGE LEVEL: Everything must be CEFR B1-B2 max. Simple everyday words.
 7. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say.
 8. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT confuse with similar words from other languages.
 9. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. Write "—" if none exist.
-10. MANDATORY EXPLANATIONS: Every example sentence MUST be followed by " → " and a short, simple explanation of what the word means in that specific sentence. NEVER omit the explanation. This is NON-NEGOTIABLE.
+10. MANDATORY EXPLANATIONS: Every example sentence MUST be followed by " → " and a short, simple explanation IN {lang_name} of what the word means in that sentence. NEVER omit. NON-NEGOTIABLE.
 
-Use this EXACT structure:
+Use this EXACT structure (⚠️ EVERYTHING must be written in {lang_name}, except the Translations line):
 
-🏷️ <b>{word.upper()}</b> ([part of speech])
-📖 <b>Definition:</b> <i>[simple, clear definition — like explaining to a friend]</i>
+🏷️ <b>{word.upper()}</b> ([part of speech in {lang_name}])
+📖 <b>Definition:</b> <i>[definition in {lang_name} — simple, like explaining to a friend]</i>
 💬 <b>In context:</b>
-  • "[natural example sentence]" → <i>[what does the word mean here? Explain simply]</i>
-  • "[natural example sentence]" → <i>[what does the word mean here? Explain simply]</i>
-🔄 <b>Synonyms:</b> [true synonyms or "—"]
+  • "[example sentence in {lang_name}]" → <i>[explanation in {lang_name}]</i>
+  • "[example sentence in {lang_name}]" → <i>[explanation in {lang_name}]</i>
+🔄 <b>Synonyms:</b> [synonyms in {lang_name} or "—"]
 🌍 <b>Translations:</b> {other1}: [translation] | {other2}: [translation]
-💡 <b>Tip:</b> [One short sentence: when would you hear this word in real life?]
+💡 <b>Tip:</b> [tip in {lang_name}: when would you hear this word in real life?]
 
 If (and ONLY if) a well-known second meaning exists, add it after an <hr> tag using the same structure (without repeating the Tip).
 
@@ -367,10 +367,10 @@ async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAUL
 User Selected Language: "{language}"
 
 Task:
-1. Is the selected language blatantly wrong for this word? (e.g. user selected "Dutch" but typed "Bonjour", which is French). If it's a mistake, identify the correct language from the 3 options below. If the word naturally exists in the selected language, KEEP the selected language.
-2. Correct any obvious spelling mistakes in the word (e.g. "appell" -> "appel", "etre" -> "bien-être").
+1. Is the selected language blatantly wrong for this word? If it's a mistake, pick the correct language. If the word naturally exists in the selected language, KEEP it.
+2. Correct any obvious spelling mistakes in the word. CRITICAL RULE: You may ONLY correct to a REAL word that actually exists in one of these languages (English, French, or Dutch). If you are not sure what the correct spelling is, return the ORIGINAL word unchanged. NEVER invent a word.
 
-Return ONLY a valid JSON object in this exact format, with no markdown formatting:
+Return ONLY a valid JSON object, no markdown:
 {{"word": "[Corrected Word]", "language": "[🇬🇧 English or 🇫🇷 Français or 🇳🇱 Nederlands]"}}"""
 
     try:
@@ -387,14 +387,19 @@ Return ONLY a valid JSON object in this exact format, with no markdown formattin
             context.user_data['language'] = language
             await update.message.reply_text(f"🌍 <i>Language mismatch! Auto-switching to: <b>{language}</b></i>", parse_mode="HTML")
             
-        # 2. Check if spelling was corrected
+        # 2. Check if spelling was corrected (but reject if too different from original)
         if corrected_word and len(corrected_word) > 0 and corrected_word.lower() != word.lower():
-            word = corrected_word
-            await update.message.reply_text(f"✨ <i>Auto-corrected typo to: <b>{word}</b></i>", parse_mode="HTML")
+            # Safety: reject correction if the word changed too drastically (more than 40% different length)
+            len_diff = abs(len(corrected_word) - len(word))
+            if len_diff <= max(3, len(word) * 0.4):
+                word = corrected_word
+                await update.message.reply_text(f"✨ <i>Auto-corrected typo to: <b>{word}</b></i>", parse_mode="HTML")
+            else:
+                print(f"⚠️ Rejected suspicious correction: '{word}' -> '{corrected_word}'")
             
     except Exception as e:
         print(f"Pre-flight failed: {e}")
-        # Fallback to English if the user typed an invalid category manually and JSON failed
+        # Fallback if the user typed an invalid language manually and JSON failed
         if language not in valid_languages:
             language = "🇬🇧 English"
             context.user_data['language'] = language
