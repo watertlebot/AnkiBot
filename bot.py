@@ -144,11 +144,11 @@ Target Word: "{word}"
 Target Language: {lang_name}
 
 ABSOLUTE RULES:
-1. ACCURACY IS PARAMOUNT. Do NOT invent meanings, etymologies, or uses that don't exist. If the word does NOT exist in {lang_name}, say so.
-2. ALL CONTENT IN {lang_name}: The definition, the example sentences, AND the explanations after "→" must ALL be written in {lang_name}. The ONLY exception is the Translations line. NEVER write definitions or explanations in English unless {lang_name} IS English.
-3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown.
+1. ACCURACY IS PARAMOUNT. Do NOT invent meanings. If the word does NOT exist (e.g., misspelled like "Annodin"), return EXACTLY: ❌ <b>[Word]</b> n'existe pas en {lang_name}. Vouliez-vous dire <b>[Correct spelling]</b>? (Do not use the template below if the word doesn't exist).
+2. ALL CONTENT IN {lang_name}: The definition, the example sentences, AND the explanations after "→" must ALL be written in {lang_name}. The ONLY exception is the Translations line.
+3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown. Use literal bullets (•). NEVER use HTML entities like &nbsp; or &bull;.
 4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary.
-5. MULTIPLE PARTS OF SPEECH: If the word can act as MULTIPLE grammatical types (e.g., a past participle AND an adjective, or a noun AND a verb), you MUST create TWO separate definition blocks separated by an <hr> tag. Each block must have its own part of speech, definition, examples, synonyms, and translations. Do NOT merge them into one.
+5. MULTIPLE PARTS OF SPEECH: You MUST identify ALL possible grammatical types. For instance, past participles (like "culpabilisé") are almost always used as BOTH a past participle (action) AND an adjective (state). You MUST create TWO separate definition blocks separated by an <hr> tag. Each block must have its own part of speech, definition, examples, synonyms, and translations.
 6. EXACT WORD FORM: Always define the exact grammatical form provided.
 7. ONE MEANING BY DEFAULT: Give only the PRIMARY meaning per grammatical type. Add a second meaning ONLY if it's well-known. When in doubt, ONE meaning only.
 8. LANGUAGE LEVEL: Everything must be CEFR B1-B2 max. Simple everyday words.
@@ -182,16 +182,18 @@ IMPORTANT for Translations:
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
 YOUR TASK — Review, correct, and DELETE anything wrong:
-1. SEMANTIC ACCURACY (MOST IMPORTANT): Does the definition capture the TRUE, PRECISE meaning of the word? Watch out for subtle confusions between related but DIFFERENT concepts. Example: "culpabilisé" means "made to feel guilty" (a psychological feeling someone puts on you), NOT "held responsible" (an objective fact), and NOT the active verb "faire culpabiliser quelqu'un". If the definition confuses the real meaning, REWRITE it correctly.
-2. EXACT WORD FORM CHECK: Ensure the definition matches the EXACT morphological form of the word. If the word is an adjective/past participle, the definition must reflect a state ("qui se sent coupable"), NOT an action ("faire ressentir de la culpabilité"). Fix it immediately if wrong.
-3. MEANING PURGE: If ANY listed meaning is fake, hallucinated, or borrowed from another language — DELETE that entire block.
-4. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by a simple explanation in {lang_name}. If missing, ADD it.
-5. DEFINITION SIMPLICITY: Rewrite dictionary-style definitions like you're explaining to a friend.
-5. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
-6. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
-7. Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
-8. LANGUAGE CHECK: ALL content (definition, examples, explanations, tip) MUST be in {lang_name}. Only the Translations line uses other languages.
-9. Keep HTML format (<b>, <i> tags, emojis). No markdown.
+1. SEMANTIC ACCURACY: Does the definition capture the TRUE, PRECISE meaning? Watch out for subtle confusions.
+2. MULTIPLE PARTS OF SPEECH: If the word is a past participle like "culpabilisé", there MUST be two separate blocks (one for past participle, one for adjective). If the draft only has one, REWRITE it to include both.
+3. INVALID WORDS: If the draft says the word does not exist, ensure it strictly outputs: ❌ <b>[Word]</b> n'existe pas en {lang_name}. Vouliez-vous dire <b>[Correct spelling]</b>? with NO other content.
+4. EXACT WORD FORM CHECK: Ensure the definition matches the EXACT morphological form of the word.
+5. MEANING PURGE: Delete fake or hallucinated meanings.
+6. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by an explanation in {lang_name}.
+7. FORMATTING: Use true bullet points (•), NEVER HTML entities like &nbsp; or &bull;.
+8. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
+9. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
+10. GRAMMAR: Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
+11. LANGUAGE CHECK: ALL content MUST be in {lang_name}.
+12. HTML TAGS: Keep HTML format (<b>, <i> tags, emojis). No markdown.
 
 DRAFT TO REVIEW:
 {draft}
