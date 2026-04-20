@@ -170,18 +170,20 @@ IMPORTANT for Translations:
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
 YOUR TASK — Review, correct, and DELETE anything wrong:
-1. MEANING PURGE: If ANY listed meaning is fake, hallucinated, or borrowed from another language — DELETE that entire block.
-2. EXPLANATION CHECK: Every single example sentence MUST have a " → " followed by a simple explanation. If any explanation is missing, ADD it. If an explanation is too complex or sounds like a dictionary, REWRITE it in simple everyday words.
-3. DEFINITION SIMPLICITY: Is the definition written like a dictionary? Rewrite it like you're explaining to a friend. Keep it short and natural.
-4. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
-5. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
-6. Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
-7. Keep HTML format (<b>, <i> tags, emojis). No markdown.
+1. SEMANTIC ACCURACY (MOST IMPORTANT): Does the definition capture the TRUE, PRECISE meaning of the word? Watch out for subtle confusions between related but DIFFERENT concepts. Example: "culpabilisé" means "made to feel guilty" (a psychological feeling someone puts on you), NOT "held responsible" (an objective fact). "Responsable" and "culpabilisé" are NOT the same thing. If the definition confuses the real meaning with a similar but wrong concept, REWRITE it correctly.
+2. MEANING PURGE: If ANY listed meaning is fake, hallucinated, or borrowed from another language — DELETE that entire block.
+3. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by a simple explanation in {lang_name}. If missing, ADD it.
+4. DEFINITION SIMPLICITY: Rewrite dictionary-style definitions like you're explaining to a friend.
+5. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
+6. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
+7. Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
+8. LANGUAGE CHECK: ALL content (definition, examples, explanations, tip) MUST be in {lang_name}. Only the Translations line uses other languages.
+9. Keep HTML format (<b>, <i> tags, emojis). No markdown.
 
 DRAFT TO REVIEW:
 {draft}
 
-Return ONLY the corrected HTML. Delete fake meanings entirely. No commentary."""
+Return ONLY the corrected HTML in {lang_name}. Delete fake meanings entirely. No commentary."""
 
     try:
         final = ask_ai(review_prompt, temperature=0.1)
