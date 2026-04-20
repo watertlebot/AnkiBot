@@ -350,32 +350,30 @@ def cleanup_old_files():
 
 
 # ─── TELEGRAM HANDLERS ───────────────────────────────────────
-async def start_creation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["🇬🇧 English", "🇫🇷 Français", "🇳🇱 Nederlands"]]
-    markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("Choose a language:", reply_markup=markup)
-    return CHOOSE_LANGUAGE
-
-
-async def receive_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
-
-    # If user tapped "❌ Done", end the conversation
-    if text == "❌ Done":
-        await update.message.reply_text("See you! 👋 Type /new anytime.", reply_markup=ReplyKeyboardRemove())
-        return ConversationHandler.END
-
-    context.user_data['language'] = text
-    await update.message.reply_text("Enter a word or expression:", reply_markup=ReplyKeyboardRemove())
-    return WAITING_WORD
-
-
-async def receive_word_and_generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    word = update.message.text
-    language = context.user_data['language']
-    user_id = update.message.from_user.id
-    
     valid_languages = ["🇬🇧 English", "🇫🇷 Français", "🇳🇱 Nederlands"]
+    
+    # 1. Check if user is switching languages
+    if text in valid_languages:
+        context.user_data['language'] = text
+        keyboard = [valid_languages]
+        markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
+        await update.message.reply_text(f"✅ Language set to <b>{text}</b>.\nSend me a word or expression to translate!", parse_mode="HTML", reply_markup=markup)
+        return
+        
+    if text == "❌ Done":
+        await update.message.reply_text("See you! 👋", reply_markup=ReplyKeyboardRemove())
+        return
+        
+    # 2. Otherwise, treat it as a word to generate
+    language = context.user_data.get('language')
+    if not language:
+        language = "🇬🇧 English"
+        context.user_data['language'] = language
+        
+    word = text
+    user_id = update.message.from_user.id
     
     # Intelligent Pre-flight Check: Fix language mismatches and spelling typos
     preflight_prompt = f"""Word: "{word}"
@@ -509,16 +507,10 @@ Return ONLY a valid JSON object, no markdown:
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
 
-    # 5. LOOP: automatically offer another word (no need to retype /new)
-    keyboard = [["🇬🇧 English", "🇫🇷 Français", "🇳🇱 Nederlands"], ["❌ Done"]]
-    markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("🔄 Another word?", reply_markup=markup)
-    return CHOOSE_LANGUAGE
-
-
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Cancelled.", reply_markup=ReplyKeyboardRemove())
-    return ConversationHandler.END
+    # Ensure the user always has the language keyboard available
+    keyboard = [valid_languages]
+    markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
+    await update.message.reply_text("🔄 Send another word, or tap a language below to switch:", reply_markup=markup)
 
 
 async def export_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -621,7 +613,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     
     if not rows:
-        await update.message.reply_text("📊 No cards yet! Type /new to start generating flashcards.")
+        await update.message.reply_text("📊 No cards yet! Start by sending me a word to generate flashcards.")
         return
     
     lines = ["📊 <b>Your AnkiBot Stats</b>\n"]
@@ -637,37 +629,52 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Shows all available commands."""
     help_text = (
         "🤖 <b>AnkiBot Commands:</b>\n\n"
-        "🔹 /new - Start generating a flashcard\n"
+        "Just type ANY word directly to generate a flashcard!\n\n"
         "🔹 /export - Download ALL your saved cards in Anki decks\n"
         "🔹 /stats - See your learning statistics\n"
         "🔹 /clear - Delete all your saved memory\n"
-        "🔹 /cancel - Cancel the current action\n"
         "🔹 /help - Show this message"
     )
     await update.message.reply_text(help_text, parse_mode="HTML")
 
 
+async def post_init(application: Application):
+    """Sends a startup notification to all users when the bot comes online."""
+    print("🚀 Bot is initializing... Sending startup notifications.")
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT user_id FROM cards")
+        users = c.fetchall()
+        conn.close()
+        
+        for (uid,) in users:
+            try:
+                await application.bot.send_message(
+                    chat_id=uid, 
+                    text="🚀 <i>AnkiBot is online! You can now send any word directly to generate a card.</i>",
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"Could not notify {uid}: {e}")
+    except Exception as e:
+        print(f"Error in post_init: {e}")
+
 # ─── BOT SETUP ───────────────────────────────────────────────
 def create_app():
-    """Creates and configures the PTB application with ConversationHandler."""
+    """Creates and configures the PTB application."""
     init_db()  # Initialize the database on startup
     
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app = Application.builder().token(TELEGRAM_TOKEN).post_init(post_init).build()
     
     app.add_handler(CommandHandler('export', export_cards))
     app.add_handler(CommandHandler('clear', clear_cards))
     app.add_handler(CommandHandler('stats', show_stats))
     app.add_handler(CommandHandler('help', help_command))
     
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('new', start_creation)],
-        states={
-            CHOOSE_LANGUAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_language)],
-            WAITING_WORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_word_and_generate)],
-        },
-        fallbacks=[CommandHandler('cancel', cancel)]
-    )
-    app.add_handler(conv_handler)
+    # Global text handler for words and language switching
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
     return app
 
 
