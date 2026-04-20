@@ -55,8 +55,8 @@ def ask_ai(prompt, temperature=0.2, max_tokens=None):
     
     if GROQ_CLIENTS:
         GROQ_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"]
-        for client in GROQ_CLIENTS:
-            for model in GROQ_MODELS:
+        for model in GROQ_MODELS:
+            for client in GROQ_CLIENTS:
                 try:
                     masked_key = client.api_key[:8] + "..."
                     print(f"🔄 Trying Groq model {model} (key: {masked_key})...")
@@ -71,7 +71,7 @@ def ask_ai(prompt, temperature=0.2, max_tokens=None):
                         print(f"✅ {model} responded!")
                         return content, f"Groq ({model})"
                 except Exception as e:
-                    print(f"⚠️ Groq model {model} failed: {e}")
+                    print(f"⚠️ Groq model {model} with key {masked_key} failed: {e}")
                     last_err = e
                     continue
             
