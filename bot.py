@@ -36,7 +36,9 @@ if not OPENROUTER_API_KEY and not GROQ_API_KEY:
     raise ValueError("❌ At least one API key required: OPENROUTER_API_KEY or GROQ_API_KEY!")
 
 # ─── AI CLIENTS SETUP & FALLBACK ─────────────────────────────
-GROQ_CLIENT = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+GROQ_KEYS = [k.strip() for k in (os.environ.get("GROQ_API_KEY") or "").split(",") if k.strip()]
+GROQ_CLIENTS = [OpenAI(base_url="https://api.groq.com/openai/v1", api_key=k) for k in GROQ_KEYS]
+
 OR_CLIENT = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY) if OPENROUTER_API_KEY else None
 
 # Multiple free models on OpenRouter — if one is rate-limited, try the next
@@ -48,28 +50,30 @@ OR_MODELS = [
 ]
 
 def ask_ai(prompt, temperature=0.2, max_tokens=None):
-    """Tries Groq first, then cycles through multiple free OpenRouter models."""
+    """Tries multiple Groq keys & models first, then cycles through free OpenRouter models."""
     last_err = None
     
-    if GROQ_CLIENT:
+    if GROQ_CLIENTS:
         GROQ_MODELS = ["gpt-oss-120b", "llama-3.3-70b-versatile"]
-        for model in GROQ_MODELS:
-            try:
-                print(f"🔄 Trying Groq model {model}...")
-                r = GROQ_CLIENT.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                content = r.choices[0].message.content
-                if content:
-                    print(f"✅ {model} responded!")
-                    return content
-            except Exception as e:
-                print(f"⚠️ Groq model {model} failed: {e}")
-                last_err = e
-                continue
+        for client in GROQ_CLIENTS:
+            for model in GROQ_MODELS:
+                try:
+                    masked_key = client.api_key[:8] + "..."
+                    print(f"🔄 Trying Groq model {model} (key: {masked_key})...")
+                    r = client.chat.completions.create(
+                        model=model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
+                    content = r.choices[0].message.content
+                    if content:
+                        print(f"✅ {model} responded!")
+                        return content, f"Groq ({model})"
+                except Exception as e:
+                    print(f"⚠️ Groq model {model} failed: {e}")
+                    last_err = e
+                    continue
             
     if OR_CLIENT:
         for model in OR_MODELS:
@@ -84,7 +88,7 @@ def ask_ai(prompt, temperature=0.2, max_tokens=None):
                 content = r.choices[0].message.content
                 if content:
                     print(f"✅ {model} responded!")
-                    return content
+                    return content, f"OpenRouter ({model})"
             except Exception as e:
                 print(f"⚠️ {model} failed: {e}")
                 last_err = e
@@ -169,7 +173,7 @@ IMPORTANT for Translations:
 - If no single word exists, use a short phrase (2-4 words max).
 - For idioms, give the equivalent idiom if one exists."""
 
-    draft = ask_ai(draft_prompt, temperature=0.3)
+    draft, draft_model = ask_ai(draft_prompt, temperature=0.3)
 
     # ── STEP 2: Self-review & polish ─────────────────────────
     review_prompt = f"""You are a ruthlessly precise {lang_name} language professor.
@@ -192,10 +196,10 @@ DRAFT TO REVIEW:
 Return ONLY the corrected HTML in {lang_name}. Delete fake meanings entirely. No commentary."""
 
     try:
-        final = ask_ai(review_prompt, temperature=0.1)
-        return final
+        final, final_model = ask_ai(review_prompt, temperature=0.1)
+        return final, final_model
     except Exception:
-        return draft  # Fallback to draft if review fails completely
+        return draft, draft_model  # Fallback to draft if review fails completely
 
 
 def get_image_search_term(word, language):
@@ -205,7 +209,7 @@ Is this a concrete, visual word (object, animal, place, food, tool, etc.) that w
 - If YES: respond with ONLY a 1-2 word English search term for finding a relevant photo. Nothing else.
 - If NO (idiom, abstract concept, expression, feeling, verb, adjective): respond with ONLY the word "NO". Nothing else."""
     try:
-        content = ask_ai(prompt, temperature=0.0, max_tokens=20)
+        content, _ = ask_ai(prompt, temperature=0.0, max_tokens=20)
         result = content.strip().strip('"')
         print(f"🖼️ Image check for '{word}': AI responded '{result}'")
         if result.upper() == "NO":
@@ -382,8 +386,8 @@ Return ONLY a valid JSON object, no markdown:
 {{"word": "[Corrected Word]", "language": "[🇬🇧 English or 🇫🇷 Français or 🇳🇱 Nederlands]"}}"""
 
     try:
-        response = ask_ai(preflight_prompt, temperature=0.0, max_tokens=40).strip()
-        response = response.replace('```json', '').replace('```', '').strip()
+        response_raw, _ = ask_ai(preflight_prompt, temperature=0.0, max_tokens=40)
+        response = response_raw.strip().replace('```json', '').replace('```', '').strip()
         data = json.loads(response)
         
         detected_lang = data.get("language", language)
@@ -429,9 +433,11 @@ Return ONLY a valid JSON object, no markdown:
 
     try:
         # 1. Generate AI definition
-        result_html = generate_definition(word, language)
+        result_html, model_used = generate_definition(word, language)
         # Telegram doesn't support <hr> or <br> tags in parse_mode="HTML", but Anki does
         telegram_preview = result_html.replace("<hr>", "\n───────────────\n").replace("<br>", "\n")
+        
+        telegram_preview += f"\n\n🤖 <i>Generated with {model_used}</i>"
         await update.message.reply_text(telegram_preview, parse_mode="HTML")
 
         # Save to database
