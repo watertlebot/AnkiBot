@@ -52,18 +52,24 @@ def ask_ai(prompt, temperature=0.2, max_tokens=None):
     last_err = None
     
     if GROQ_CLIENT:
-        try:
-            r = GROQ_CLIENT.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-            content = r.choices[0].message.content
-            if content: return content
-        except Exception as e:
-            print(f"⚠️ Groq failed: {e}")
-            last_err = e
+        GROQ_MODELS = ["gpt-oss-120b", "llama-3.3-70b-versatile"]
+        for model in GROQ_MODELS:
+            try:
+                print(f"🔄 Trying Groq model {model}...")
+                r = GROQ_CLIENT.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                content = r.choices[0].message.content
+                if content:
+                    print(f"✅ {model} responded!")
+                    return content
+            except Exception as e:
+                print(f"⚠️ Groq model {model} failed: {e}")
+                last_err = e
+                continue
             
     if OR_CLIENT:
         for model in OR_MODELS:
