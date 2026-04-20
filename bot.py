@@ -54,7 +54,7 @@ def ask_ai(prompt, temperature=0.2, max_tokens=None):
     last_err = None
     
     if GROQ_CLIENTS:
-        GROQ_MODELS = ["gpt-oss-120b", "llama-3.3-70b-versatile"]
+        GROQ_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"]
         for client in GROQ_CLIENTS:
             for model in GROQ_MODELS:
                 try:
@@ -148,8 +148,9 @@ ABSOLUTE RULES:
 2. ALL CONTENT IN {lang_name}: The definition, the example sentences, AND the explanations after "→" must ALL be written in {lang_name}. The ONLY exception is the Translations line. NEVER write definitions or explanations in English unless {lang_name} IS English.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown.
 4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary.
-5. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning. Add a second meaning ONLY if it's well-known and real. When in doubt, ONE meaning only. NEVER invent meanings.
-6. LANGUAGE LEVEL: Everything must be CEFR B1-B2 max. Simple everyday words.
+5. EXACT WORD FORM: You MUST define the exact grammatical form provided. If the word is a past participle or adjective (e.g., "culpabilisé"), define it as a state or feeling (e.g., "feeling guilty" or "made to feel guilty"). Do NOT define it as the infinitive verb (e.g., "to make someone feel guilty").
+6. ONE MEANING BY DEFAULT: Give only the PRIMARY, most common meaning. Add a second meaning ONLY if it's well-known and real. When in doubt, ONE meaning only. NEVER invent meanings.
+7. LANGUAGE LEVEL: Everything must be CEFR B1-B2 max. Simple everyday words.
 7. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say.
 8. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT confuse with similar words from other languages.
 9. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. Write "—" if none exist.
@@ -180,10 +181,11 @@ IMPORTANT for Translations:
 Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 
 YOUR TASK — Review, correct, and DELETE anything wrong:
-1. SEMANTIC ACCURACY (MOST IMPORTANT): Does the definition capture the TRUE, PRECISE meaning of the word? Watch out for subtle confusions between related but DIFFERENT concepts. Example: "culpabilisé" means "made to feel guilty" (a psychological feeling someone puts on you), NOT "held responsible" (an objective fact). "Responsable" and "culpabilisé" are NOT the same thing. If the definition confuses the real meaning with a similar but wrong concept, REWRITE it correctly.
-2. MEANING PURGE: If ANY listed meaning is fake, hallucinated, or borrowed from another language — DELETE that entire block.
-3. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by a simple explanation in {lang_name}. If missing, ADD it.
-4. DEFINITION SIMPLICITY: Rewrite dictionary-style definitions like you're explaining to a friend.
+1. SEMANTIC ACCURACY (MOST IMPORTANT): Does the definition capture the TRUE, PRECISE meaning of the word? Watch out for subtle confusions. Example: "culpabilisé" means "made to feel guilty" (a psychological feeling someone puts on you), NOT "held responsible" (an objective fact), and NOT the active verb "faire culpabiliser quelqu'un". If the definition confuses the real meaning, REWRITE it correctly.
+2. EXACT WORD FORM CHECK: Ensure the definition matches the EXACT morphological form of the word. If the word is an adjective/past participle ("culpabilisé"), the definition must reflect a state ("qui se sent coupable"), NOT an action ("faire ressentir de la culpabilité"). Fix it immediately if wrong.
+3. MEANING PURGE: If ANY listed meaning is fake, hallucinated, or borrowed from another language — DELETE that entire block.
+4. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by a simple explanation in {lang_name}. If missing, ADD it.
+5. DEFINITION SIMPLICITY: Rewrite dictionary-style definitions like you're explaining to a friend.
 5. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
 6. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
 7. Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
