@@ -144,7 +144,7 @@ Target Word: "{word}"
 Target Language: {lang_name}
 
 ABSOLUTE RULES:
-1. ACCURACY IS PARAMOUNT. Do NOT invent meanings. If the word does NOT exist (e.g., misspelled like "Annodin"), return EXACTLY: ❌ <b>[Word]</b> n'existe pas en {lang_name}. Vouliez-vous dire <b>[Correct spelling]</b>? (Do not use the template below if the word doesn't exist).
+1. ACCURACY & CORRECTIONS: If the word is slightly misspelled, incomplete, or a variation of a real expression (e.g., "Devils in the details" -> "The devil is in the details"), CORRECT IT automatically and generate the full entry for the CORRECTED word. If the word is complete nonsense and cannot be corrected (e.g., "asdfghjkl"), return EXACTLY: ❌ <b>{word}</b> does not exist in {lang_name}.
 2. ALL CONTENT IN {lang_name}: The definition, the example sentences, AND the explanations after "→" must ALL be written in {lang_name}. The ONLY exception is the Translations line.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown. Use literal bullets (•). NEVER use HTML entities like &nbsp; or &bull;.
 4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary.
@@ -184,7 +184,7 @@ Below is a draft dictionary entry for the word "{word}" in {lang_name}.
 YOUR TASK — Review, correct, and DELETE anything wrong:
 1. SEMANTIC ACCURACY: Does the definition capture the TRUE, PRECISE meaning? Watch out for subtle confusions.
 2. MULTIPLE PARTS OF SPEECH: If the word is a past participle like "culpabilisé", there MUST be two separate blocks (one for past participle, one for adjective). If the draft only has one, REWRITE it to include both.
-3. INVALID WORDS: If the draft says the word does not exist, ensure it strictly outputs: ❌ <b>[Word]</b> n'existe pas en {lang_name}. Vouliez-vous dire <b>[Correct spelling]</b>? with NO other content.
+3. INVALID WORDS: If the draft says the word does not exist, ensure it strictly outputs: ❌ <b>{word}</b> does not exist in {lang_name}. with NO other content.
 4. EXACT WORD FORM CHECK: Ensure the definition matches the EXACT morphological form of the word.
 5. MEANING PURGE: Delete fake or hallucinated meanings.
 6. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by an explanation in {lang_name}.
