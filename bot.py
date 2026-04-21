@@ -151,7 +151,7 @@ ABSOLUTE RULES:
 5. MULTIPLE PARTS OF SPEECH: You MUST identify ALL possible grammatical types. For instance, past participles (like "culpabilisé") are almost always used as BOTH a past participle (action) AND an adjective (state). You MUST create TWO separate definition blocks separated by an <hr> tag. Each block must have its own part of speech, definition, examples, synonyms, and translations.
 6. EXACT WORD FORM: Always define the exact grammatical form provided.
 7. ONE MEANING BY DEFAULT: Give only the PRIMARY meaning per grammatical type. Add a second meaning ONLY if it's well-known. When in doubt, ONE meaning only.
-8. LANGUAGE LEVEL: Everything must be CEFR B1-B2 max. Simple everyday words.
+8. LANGUAGE LEVEL: Use ONLY extremely simple, beginner-friendly vocabulary (A2-B1 level max) for definitions and explanations. NEVER use complex, formal, or uncommon words (e.g., avoid words like "slated", "omitted", etc.). Explain it like you would to a 10-year-old.
 9. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say.
 10. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT confuse with similar words from other languages.
 11. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. Write "—" if none exist.
@@ -189,7 +189,7 @@ YOUR TASK — Review, correct, and DELETE anything wrong:
 5. MEANING PURGE: Delete fake or hallucinated meanings.
 6. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by an explanation in {lang_name}.
 7. FORMATTING: Use true bullet points (•), NEVER HTML entities like &nbsp; or &bull;.
-8. NATURALNESS: Would a native {lang_name} speaker actually say each example? If not, rewrite.
+8. NATURALNESS & SIMPLICITY: Would a native {lang_name} speaker actually say each example? If not, rewrite. Also, ensure ALL vocabulary in the definition and explanations is extremely simple (A2-B1 level max). If you see a complex or uncommon word (like "slated" or "omitted"), rewrite it to be simpler. Explain it like you would to a 10-year-old.
 9. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
 10. GRAMMAR: Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
 11. LANGUAGE CHECK: ALL content MUST be in {lang_name}.
