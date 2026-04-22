@@ -6,6 +6,7 @@ import shutil
 import uuid
 import time
 import json
+import hashlib
 import urllib.request
 import urllib.parse
 import re
@@ -279,13 +280,26 @@ def generate_audio(word, language):
         return None
 
 
+def make_stable_guid(word, language_label):
+    """Creates a deterministic GUID for an Anki note based on word + language.
+    This ensures that importing the same word twice will UPDATE the existing card
+    instead of creating a duplicate."""
+    key = f"ankibot::{language_label}::{word.lower().strip()}"
+    return hashlib.sha256(key.encode('utf-8')).hexdigest()[:10]
+
+
+def make_stable_deck_id(deck_name):
+    """Creates a stable deck ID from the deck name so all imports go to the same deck."""
+    return int(hashlib.sha256(deck_name.encode('utf-8')).hexdigest()[:8], 16) % (1 << 31)
+
+
 def create_anki_file(word, language_label, html_content, image_path=None, audio_path=None):
     """Creates an .apkg file in the system temp directory."""
     language_name = language_label.split()[-1]
     deck_name = f"Vocabulary::{language_name}"
 
     model_id = 1607392319
-    deck_id = random.randrange(1 << 30, 1 << 31)
+    deck_id = make_stable_deck_id(deck_name)
 
     anki_model = genanki.Model(
         model_id,
@@ -316,7 +330,11 @@ def create_anki_file(word, language_label, html_content, image_path=None, audio_
         html_content += f'<br><br>🔊 [sound:{audio_filename}]'
         media_files.append(audio_path)
 
-    note = genanki.Note(model=anki_model, fields=[word.capitalize(), html_content.replace("\n", "<br>")])
+    note = genanki.Note(
+        model=anki_model, 
+        fields=[word.capitalize(), html_content.replace("\n", "<br>")],
+        guid=make_stable_guid(word, language_label)
+    )
     deck.add_note(note)
 
     safe_word = word.replace(" ", "_").replace("'", "_")
@@ -570,7 +588,7 @@ async def export_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
         deck_name = f"My Global Deck::{language_name}"
         
         model_id = 1607392319
-        deck_id = hash(deck_name) % (1 << 31) # stable id
+        deck_id = make_stable_deck_id(deck_name)
         
         anki_model = genanki.Model(
             model_id,
@@ -586,7 +604,11 @@ async def export_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
         deck = genanki.Deck(deck_id, deck_name)
         
         for word, html_content in cards:
-            note = genanki.Note(model=anki_model, fields=[word.capitalize(), html_content.replace("\n", "<br>")])
+            note = genanki.Note(
+                model=anki_model, 
+                fields=[word.capitalize(), html_content.replace("\n", "<br>")],
+                guid=make_stable_guid(word, language)
+            )
             deck.add_note(note)
             
         filename = f"Global_Deck_{language_name}.apkg"
