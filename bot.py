@@ -132,27 +132,26 @@ def init_db():
 
 # ─── CORE FUNCTIONS ──────────────────────────────────────────
 def generate_definition(word, language):
-    """2-step agentic pipeline: Draft → Self-Review → Final output."""
+    """Single-pass expert pipeline: Generate + Self-Review in one call for speed."""
     lang_info = LANGUAGE_MAP.get(language, {"name": language, "others": ["English", "French"]})
     lang_name = lang_info["name"]
     other1, other2 = lang_info["others"]
 
-    # ── STEP 1: Generate the draft ────────────────────────────
-    draft_prompt = f"""You are a world-class linguistic expert, lexicographer, and polyglot professor.
-Your task is to create a PERFECT, ACCURATE dictionary entry.
+    prompt = f"""You are a world-class linguistic expert, lexicographer, and polyglot professor.
+Your task is to create a PERFECT, ACCURATE dictionary entry, then SELF-REVIEW it before outputting.
 
 Target Word: "{word}"
 Target Language: {lang_name}
 
 ABSOLUTE RULES:
-1. ACCURACY & CORRECTIONS: If the word is slightly misspelled, incomplete, or a variation of a real expression (e.g., "Devils in the details" -> "The devil is in the details"), CORRECT IT automatically and generate the full entry for the CORRECTED word. If the word is complete nonsense and cannot be corrected (e.g., "asdfghjkl"), return EXACTLY: ❌ <b>{word}</b> does not exist in {lang_name}.
+1. ACCURACY & CORRECTIONS: Accept ALL real words, including informal, rare, slang, archaic, or technical words (e.g., "demagoguing", "yeet", "anodin") — as long as they genuinely exist in the language and have a documented meaning, even if uncommon. If the word is slightly misspelled or a variation of a real expression (e.g., "Devils in the details" -> "The devil is in the details"), CORRECT IT automatically and generate the entry for the CORRECTED version. ONLY reject a word if it is complete nonsense with no possible correction (e.g., "asdfghjkl") — in that case return EXACTLY: ❌ <b>{word}</b> does not exist in {lang_name}.
 2. ALL CONTENT IN {lang_name}: The definition, the example sentences, AND the explanations after "→" must ALL be written in {lang_name}. The ONLY exception is the Translations line.
 3. Format: Use HTML <b> and <i> tags ONLY. Absolutely NO markdown. Use literal bullets (•). NEVER use HTML entities like &nbsp; or &bull;.
 4. EXPLAIN LIKE A FRIEND: Write definitions and explanations as if you're explaining to a friend in simple words. NOT like a dictionary.
 5. MULTIPLE PARTS OF SPEECH: You MUST identify ALL possible grammatical types. For instance, past participles (like "culpabilisé") are almost always used as BOTH a past participle (action) AND an adjective (state). You MUST create TWO separate definition blocks separated by an <hr> tag. Each block must have its own part of speech, definition, examples, synonyms, and translations.
 6. EXACT WORD FORM: Always define the exact grammatical form provided.
 7. ONE MEANING BY DEFAULT: Give only the PRIMARY meaning per grammatical type. Add a second meaning ONLY if it's well-known. When in doubt, ONE meaning only.
-8. LANGUAGE LEVEL: Use ONLY extremely simple, beginner-friendly vocabulary (A2-B1 level max) for definitions and explanations. NEVER use complex, formal, or uncommon words (e.g., avoid words like "slated", "omitted", etc.). Explain it like you would to a 10-year-old.
+8. LANGUAGE LEVEL: Use ONLY extremely simple, beginner-friendly vocabulary (A2-B1 level max) for definitions and explanations. NEVER use complex, formal, or uncommon words in YOUR explanations (e.g., avoid words like "slated", "omitted", "commenced"). Explain it like you would to a 10-year-old.
 9. NATURAL EXAMPLES ONLY: Every example must be something a native speaker would ACTUALLY say.
 10. STAY IN THE CORRECT LANGUAGE: "{word}" is a {lang_name} word. Define it in {lang_name}. Do NOT confuse with similar words from other languages.
 11. CORRECT SYNONYMS ONLY: Words with the SAME meaning only. Write "—" if none exist.
@@ -174,38 +173,22 @@ If (and ONLY if) a well-known second meaning exists, add it after an <hr> tag us
 IMPORTANT for Translations:
 - Most natural equivalent in {other1} and {other2}.
 - If no single word exists, use a short phrase (2-4 words max).
-- For idioms, give the equivalent idiom if one exists."""
+- For idioms, give the equivalent idiom if one exists.
 
-    draft, draft_model = ask_ai(draft_prompt, temperature=0.3)
+SELF-REVIEW BEFORE OUTPUTTING — check these points and fix any issues BEFORE returning your answer:
+✓ Is the definition semantically accurate and precise?
+✓ If the word is a past participle, are there TWO blocks (past participle + adjective)?
+✓ Are ALL explanations and definitions in {lang_name} (not mixed with English)?
+✓ Is every example followed by " → " and a simple explanation?
+✓ Are synonyms TRUE synonyms? (delete any that are just related words)
+✓ Are translations into {other1} and {other2} accurate?
+✓ Is the vocabulary in definitions/explanations extremely simple (A2-B1)?
+✓ Are you using literal • bullets (not &bull; or &nbsp;)?
 
-    # ── STEP 2: Self-review & polish ─────────────────────────
-    review_prompt = f"""You are a ruthlessly precise {lang_name} language professor.
-Below is a draft dictionary entry for the word "{word}" in {lang_name}.
+Return ONLY the final HTML. No commentary, no "Here is the result", just the content."""
 
-YOUR TASK — Review, correct, and DELETE anything wrong:
-1. SEMANTIC ACCURACY: Does the definition capture the TRUE, PRECISE meaning? Watch out for subtle confusions.
-2. MULTIPLE PARTS OF SPEECH: If the word is a past participle like "culpabilisé", there MUST be two separate blocks (one for past participle, one for adjective). If the draft only has one, REWRITE it to include both.
-3. INVALID WORDS: If the draft says the word does not exist, ensure it strictly outputs: ❌ <b>{word}</b> does not exist in {lang_name}. with NO other content.
-4. EXACT WORD FORM CHECK: Ensure the definition matches the EXACT morphological form of the word.
-5. MEANING PURGE: Delete fake or hallucinated meanings.
-6. EXPLANATION CHECK: Every example sentence MUST have a " → " followed by an explanation in {lang_name}.
-7. FORMATTING: Use true bullet points (•), NEVER HTML entities like &nbsp; or &bull;.
-8. NATURALNESS & SIMPLICITY: Would a native {lang_name} speaker actually say each example? If not, rewrite. Also, ensure ALL vocabulary in the definition and explanations is extremely simple (A2-B1 level max). If you see a complex or uncommon word (like "slated" or "omitted"), rewrite it to be simpler. Explain it like you would to a 10-year-old.
-9. SYNONYMS: Are they TRUE synonyms? Delete any that are just related words.
-10. GRAMMAR: Fix grammar/spelling. Translations into {other1} and {other2} accurate? Fix if wrong.
-11. LANGUAGE CHECK: ALL content MUST be in {lang_name}.
-12. HTML TAGS: Keep HTML format (<b>, <i> tags, emojis). No markdown.
-
-DRAFT TO REVIEW:
-{draft}
-
-Return ONLY the corrected HTML in {lang_name}. Delete fake meanings entirely. No commentary."""
-
-    try:
-        final, final_model = ask_ai(review_prompt, temperature=0.1)
-        return final, final_model
-    except Exception:
-        return draft, draft_model  # Fallback to draft if review fails completely
+    result, model = ask_ai(prompt, temperature=0.2)
+    return result, model
 
 
 def get_image_search_term(word, language):
