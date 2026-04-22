@@ -351,6 +351,34 @@ def cleanup_old_files():
         pass
 
 
+# ─── LOCALIZED UI MESSAGES ───────────────────────────────────
+LOCALIZED_STRINGS = {
+    "🇬🇧 English": {
+        "set": "✅ Language set to <b>🇬🇧 English</b>.\nSend me a word or expression to translate!",
+        "mismatch": "🌍 <i>Language mismatch! Auto-switching to: <b>{lang}</b></i>",
+        "typo": "✨ <i>Auto-corrected typo to: <b>{word}</b></i>",
+        "memory": "🧠 <i>Memory check: You already generated a card for this word {times} time(s) before!</i>\n\n",
+        "analyzing": "⏳ Analyzing '{word}'...",
+        "another": "🔄 Send another word, or tap a language below to switch:"
+    },
+    "🇫🇷 Français": {
+        "set": "✅ Langue définie sur <b>🇫🇷 Français</b>.\nEnvoie-moi un mot ou une expression à traduire !",
+        "mismatch": "🌍 <i>Erreur de langue ! Passage automatique à : <b>{lang}</b></i>",
+        "typo": "✨ <i>Faute de frappe corrigée en : <b>{word}</b></i>",
+        "memory": "🧠 <i>Rappel : Tu as déjà généré une carte pour ce mot {times} fois auparavant !</i>\n\n",
+        "analyzing": "⏳ Analyse de '{word}'...",
+        "another": "🔄 Envoie un autre mot, ou clique ci-dessous pour changer de langue :"
+    },
+    "🇳🇱 Nederlands": {
+        "set": "✅ Taal ingesteld op <b>🇳🇱 Nederlands</b>.\nStuur me een woord of uitdrukking om te vertalen!",
+        "mismatch": "🌍 <i>Taalfout! Automatisch overgeschakeld naar: <b>{lang}</b></i>",
+        "typo": "✨ <i>Typfout gecorrigeerd naar: <b>{word}</b></i>",
+        "memory": "🧠 <i>Herinnering: Je hebt al {times} keer eerder een kaart voor dit woord gegenereerd!</i>\n\n",
+        "analyzing": "⏳ Analyseren van '{word}'...",
+        "another": "🔄 Stuur een ander woord, of klik hieronder om van taal te wisselen:"
+    }
+}
+
 # ─── TELEGRAM HANDLERS ───────────────────────────────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -361,7 +389,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['language'] = text
         keyboard = [valid_languages]
         markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
-        await update.message.reply_text(f"✅ Language set to <b>{text}</b>.\nSend me a word or expression to translate!", parse_mode="HTML", reply_markup=markup)
+        msg = LOCALIZED_STRINGS[text]["set"]
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=markup)
         return
         
     if text == "❌ Done":
@@ -383,7 +412,7 @@ User Selected Language: "{language}"
 
 Task:
 1. Is the selected language blatantly wrong for this word? If it's a mistake, pick the correct language. If the word naturally exists in the selected language, KEEP it.
-2. Correct any obvious spelling mistakes in the word. CRITICAL RULE: You may ONLY correct to a REAL word that actually exists in one of these languages (English, French, or Dutch). If you are not sure what the correct spelling is, return the ORIGINAL word unchanged. NEVER invent a word.
+2. Correct any obvious spelling mistakes in the word. CRITICAL RULE: Even if the user types complete gibberish (e.g. "Sévur" -> "Sévir"), you MUST attempt to guess the closest, most phonetically or visually similar REAL word in the target language. DO NOT leave nonsense unchanged if you can reasonably guess the intended word.
 
 Return ONLY a valid JSON object, no markdown:
 {{"word": "[Corrected Word]", "language": "[🇬🇧 English or 🇫🇷 Français or 🇳🇱 Nederlands]"}}"""
@@ -400,17 +429,14 @@ Return ONLY a valid JSON object, no markdown:
         if detected_lang != language and detected_lang in valid_languages:
             language = detected_lang
             context.user_data['language'] = language
-            await update.message.reply_text(f"🌍 <i>Language mismatch! Auto-switching to: <b>{language}</b></i>", parse_mode="HTML")
+            msg = LOCALIZED_STRINGS[language]["mismatch"].format(lang=language)
+            await update.message.reply_text(msg, parse_mode="HTML")
             
-        # 2. Check if spelling was corrected (but reject if too different from original)
+        # 2. Check if spelling was corrected
         if corrected_word and len(corrected_word) > 0 and corrected_word.lower() != word.lower():
-            # Safety: reject correction if the word changed too drastically (more than 40% different length)
-            len_diff = abs(len(corrected_word) - len(word))
-            if len_diff <= max(3, len(word) * 0.4):
-                word = corrected_word
-                await update.message.reply_text(f"✨ <i>Auto-corrected typo to: <b>{word}</b></i>", parse_mode="HTML")
-            else:
-                print(f"⚠️ Rejected suspicious correction: '{word}' -> '{corrected_word}'")
+            word = corrected_word
+            msg = LOCALIZED_STRINGS[language]["typo"].format(word=word)
+            await update.message.reply_text(msg, parse_mode="HTML")
             
     except Exception as e:
         print(f"Pre-flight failed: {e}")
@@ -429,10 +455,10 @@ Return ONLY a valid JSON object, no markdown:
 
     reminder = ""
     if times_searched > 0:
-        times_str = "time" if times_searched == 1 else "times"
-        reminder = f"🧠 <i>Memory check: You already generated a card for this word {times_searched} {times_str} before!</i>\n\n"
+        reminder = LOCALIZED_STRINGS[language]["memory"].format(times=times_searched)
 
-    await update.message.reply_text(f"{reminder}⏳ Analyzing '{word}'...", parse_mode="HTML")
+    analyzing_msg = LOCALIZED_STRINGS[language]["analyzing"].format(word=word)
+    await update.message.reply_text(f"{reminder}{analyzing_msg}", parse_mode="HTML")
 
     try:
         # 1. Generate AI definition
@@ -512,7 +538,8 @@ Return ONLY a valid JSON object, no markdown:
     # Ensure the user always has the language keyboard available
     keyboard = [valid_languages]
     markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
-    await update.message.reply_text("🔄 Send another word, or tap a language below to switch:", reply_markup=markup)
+    msg_another = LOCALIZED_STRINGS[language]["another"]
+    await update.message.reply_text(msg_another, reply_markup=markup)
 
 
 async def export_cards(update: Update, context: ContextTypes.DEFAULT_TYPE):
